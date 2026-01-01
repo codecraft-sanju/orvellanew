@@ -11,8 +11,11 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
 
   // --- CONFIG (Dynamic Values) ---
   const UPI_ID = "9520615500@ibl"; 
-  const SHIPPING_COST = 0; // Future me agar shipping charge lagana ho to yaha change karna
-  const COD_FEE = 50;      // COD ka extra charge
+  
+  // 👇 CHANGE: Shipping cost updated to 60 (applied to both COD and Online)
+  const SHIPPING_COST = 60; 
+  
+  const COD_FEE = 50;       // COD ka extra charge
 
   // --- STATE ---
   const [step, setStep] = useState(1); 
@@ -31,6 +34,7 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
   const numericSubtotal = Number(subtotal) || 0;
   
   // Calculate Final Total based on Payment Method
+  // Logic: Shipping (60) is always added. If COD, add extra 50.
   const finalTotal = paymentMethod === 'cod' 
     ? numericSubtotal + SHIPPING_COST + COD_FEE 
     : numericSubtotal + SHIPPING_COST;
@@ -76,7 +80,8 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
         method: paymentMethod,
         txnId: paymentMethod === 'upi_manual' ? transactionId : 'COD',
         amount: finalTotal, // Backend ko final amount bhejna zaruri hai
-        isCodFeeApplied: paymentMethod === 'cod'
+        isCodFeeApplied: paymentMethod === 'cod',
+        shippingCost: SHIPPING_COST // Backend record keeping ke liye useful
     };
 
     // Backend process call
