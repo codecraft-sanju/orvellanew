@@ -145,7 +145,7 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
                                         <div className="mt-4 pl-7">
                                             {/* 🔥 APNA QR CODE KA IMAGE YAHAN LAGAO */}
                                             <div className="bg-white p-2 w-32 h-32 mb-4">
-                                                <img src="/qr-code.png" alt="Scan to Pay" className="w-full h-full object-contain" />
+                                                <img src="/qr-code.jpeg" alt="Scan to Pay" className="w-full h-full object-contain" />
                                             </div>
                                             <p className="text-xs text-gray-400 mb-2">1. Scan QR & Pay <b>₹{finalTotal}</b></p>
                                             <p className="text-xs text-gray-400 mb-2">2. Enter Transaction ID / UTR below:</p>

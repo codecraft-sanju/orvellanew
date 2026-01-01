@@ -8,10 +8,10 @@ import {
   TrendingUp, Package, Search, Bell, CheckCircle, Clock, X, 
   Save, Edit, Trash2, Calendar, Star, AlertTriangle, Menu,
   Filter, ChevronRight, DollarSign, LogOut, Loader2,
-  CreditCard, Banknote, Truck, MapPin
+  CreditCard, Banknote, Truck, MapPin, QrCode
 } from 'lucide-react';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 
 // --- API CONFIGURATION ---
@@ -21,7 +21,6 @@ const socket = io(BACKEND_URL);
 
 // --- COMPONENTS ---
 
-// 1. VISUAL: NOISE OVERLAY
 const NoiseOverlay = () => (
   <div className="fixed inset-0 z-[0] pointer-events-none opacity-[0.03] mix-blend-overlay">
     <svg className="w-full h-full">
@@ -33,7 +32,6 @@ const NoiseOverlay = () => (
   </div>
 );
 
-// 2. COMPONENT: STAT CARD
 function StatCard({ title, value, subValue, icon: Icon, color, delay }) {
     return (
         <motion.div 
@@ -59,10 +57,11 @@ function StatCard({ title, value, subValue, icon: Icon, color, delay }) {
     );
 }
 
-// 3. COMPONENT: PAYMENT BADGE
-const PaymentBadge = ({ method, status }) => {
-    const isCOD = method === 'cod';
+// 🔥 UPDATED PAYMENT BADGE FOR MANUAL UPI
+const PaymentBadge = ({ method, status, id }) => {
+    const isCOD = id === 'cod';
     const isPaid = status === 'succeeded';
+    const isManualUPI = !isCOD && !id.startsWith('pay_'); // Agar Razorpay ID nahi hai aur COD nahi hai
 
     if (isCOD) {
         return (
@@ -71,9 +70,18 @@ const PaymentBadge = ({ method, status }) => {
             </span>
         );
     }
+    
+    if (isManualUPI) {
+        return (
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold tracking-wider uppercase">
+                <QrCode size={12} /> UPI Verification Pending
+            </span>
+        );
+    }
+
     return (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold tracking-wider uppercase">
-            <CreditCard size={12} /> Online
+            <CreditCard size={12} /> Online (Paid)
         </span>
     );
 };
@@ -82,7 +90,7 @@ const PaymentBadge = ({ method, status }) => {
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All'); // All, COD, Online, Paid, Pending
+  const [filterStatus, setFilterStatus] = useState('All'); 
   const [notification, setNotification] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -98,7 +106,7 @@ export default function AdminDashboard() {
   
   // Modals
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showOrderModal, setShowOrderModal] = useState(null); // Stores selected order object
+  const [showOrderModal, setShowOrderModal] = useState(null); 
 
   const navigate = useNavigate();
 
@@ -129,7 +137,6 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Error:", error);
       setLoading(false);
-      // if(error.response?.status === 401) navigate("/auth"); // Uncomment in production
     }
   };
 
@@ -150,9 +157,9 @@ export default function AdminDashboard() {
   // --- CALCULATED STATS ---
   const stats = useMemo(() => {
     const totalRevenue = orders.reduce((acc, o) => acc + o.totalPrice, 0);
-    const codOrders = orders.filter(o => o.paymentInfo?.id === 'cod'); // Assuming 'cod' string ID
+    const codOrders = orders.filter(o => o.paymentInfo?.id === 'cod'); 
     const pendingCodAmount = codOrders
-        .filter(o => o.orderStatus !== 'Delivered') // Only count undelivered COD as pending money
+        .filter(o => o.orderStatus !== 'Delivered') 
         .reduce((acc, o) => acc + o.totalPrice, 0);
     
     return { totalRevenue, pendingCodAmount, codCount: codOrders.length };
@@ -170,7 +177,7 @@ export default function AdminDashboard() {
     return data.slice(-7); 
   }, [orders]);
 
-  // --- PRODUCT LOGIC (Keep existing logic) ---
+  // --- PRODUCT LOGIC ---
   const initializeProduct = async () => {
     setIsSubmitting(true);
     const defaultData = {
@@ -268,11 +275,9 @@ export default function AdminDashboard() {
   // --- FILTERED DATA ---
   const filteredOrders = orders.filter(o => {
     const matchesSearch = (o.user?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || o._id.includes(searchQuery);
-    
     if (!matchesSearch) return false;
-
     if (filterStatus === 'All') return true;
-    if (filterStatus === 'COD') return o.paymentInfo?.id === 'cod'; // Assuming backend saves 'cod'
+    if (filterStatus === 'COD') return o.paymentInfo?.id === 'cod'; 
     if (filterStatus === 'Online') return o.paymentInfo?.id !== 'cod';
     if (filterStatus === 'Pending') return o.orderStatus === 'Pending';
     return true;
@@ -291,7 +296,6 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#050505] text-[#E0E0E0] flex font-sans selection:bg-[#D4AF37] selection:text-black overflow-hidden relative">
       <NoiseOverlay />
 
-      {/* --- NOTIFICATION --- */}
       <AnimatePresence>
         {notification && (
           <motion.div initial={{ y: -100, opacity: 0 }} animate={{ y: 20, opacity: 1 }} exit={{ opacity: 0, y: -20 }} className="fixed top-0 left-1/2 -translate-x-1/2 z-[150] bg-[#D4AF37] text-black px-6 py-3 rounded-b-xl font-bold shadow-2xl flex items-center gap-2">
@@ -300,14 +304,12 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
-      {/* --- MOBILE MENU OVERLAY --- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMobileMenuOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden" />
         )}
       </AnimatePresence>
 
-      {/* --- SIDEBAR --- */}
       <aside className={`fixed md:relative z-50 w-[280px] h-full bg-[#0a0a0a] border-r border-white/5 flex flex-col transition-transform duration-300 shadow-2xl md:shadow-none ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <div className="p-8 flex justify-between items-center border-b border-white/5">
              <div className="flex flex-col">
@@ -349,10 +351,8 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* --- MAIN AREA --- */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
         
-        {/* HEADER */}
         <header className="h-20 border-b border-white/5 flex items-center justify-between px-6 md:px-10 bg-[#050505]/80 backdrop-blur-md sticky top-0 z-30">
             <div className="flex items-center gap-4">
                 <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-white p-2 -ml-2"><Menu size={24} /></button>
@@ -373,44 +373,15 @@ export default function AdminDashboard() {
             </div>
         </header>
 
-        {/* SCROLL CONTENT */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-32">
             
-            {/* 1. DASHBOARD VIEW */}
             {activeTab === 'dashboard' && (
                 <div className="space-y-8 animate-fade-in-up">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        {/* Intelligent Revenue Stats */}
-                        <StatCard 
-                            title="Total Revenue" 
-                            value={`₹${stats.totalRevenue.toLocaleString()}`} 
-                            subValue={`Includes ₹${stats.pendingCodAmount.toLocaleString()} Pending COD`}
-                            icon={DollarSign} 
-                            color="text-[#D4AF37]" 
-                            delay={1} 
-                        />
-                        <StatCard 
-                            title="COD Orders" 
-                            value={stats.codCount} 
-                            subValue="Cash handling required"
-                            icon={Banknote} 
-                            color="text-orange-400" 
-                            delay={2} 
-                        />
-                        <StatCard 
-                            title="Total Orders" 
-                            value={orders.length} 
-                            icon={ShoppingBag} 
-                            color="text-purple-400" 
-                            delay={3} 
-                        />
-                        <StatCard 
-                            title="Active Clients" 
-                            value={customers.length} 
-                            icon={Users} 
-                            color="text-blue-400" 
-                            delay={4} 
-                        />
+                        <StatCard title="Total Revenue" value={`₹${stats.totalRevenue.toLocaleString()}`} subValue={`Includes ₹${stats.pendingCodAmount.toLocaleString()} Pending COD`} icon={DollarSign} color="text-[#D4AF37]" delay={1} />
+                        <StatCard title="COD Orders" value={stats.codCount} subValue="Cash handling required" icon={Banknote} color="text-orange-400" delay={2} />
+                        <StatCard title="Total Orders" value={orders.length} icon={ShoppingBag} color="text-purple-400" delay={3} />
+                        <StatCard title="Active Clients" value={customers.length} icon={Users} color="text-blue-400" delay={4} />
                     </div>
 
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="bg-[#121212]/50 border border-white/5 rounded-2xl p-6 md:p-8">
@@ -437,7 +408,6 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* 2. ORDERS VIEW */}
             {(activeTab === 'orders' || activeTab === 'dashboard') && activeTab !== 'dashboard' && (
                 <div className="space-y-4">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -458,7 +428,7 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    {/* DESKTOP TABLE */}
+                    {/* TABLE */}
                     <div className="hidden md:block bg-[#121212] border border-white/5 rounded-xl overflow-hidden shadow-2xl">
                         <table className="w-full text-left text-sm text-gray-400">
                             <thead className="bg-[#1a1a1a] text-xs uppercase font-bold text-gray-300">
@@ -480,7 +450,7 @@ export default function AdminDashboard() {
                                             <div className="text-xs text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <PaymentBadge method={order.paymentInfo?.id === 'cod' ? 'cod' : 'online'} status={order.paymentInfo?.status} />
+                                            <PaymentBadge method={order.paymentInfo?.id === 'cod' ? 'cod' : 'online'} status={order.paymentInfo?.status} id={order.paymentInfo?.id} />
                                         </td>
                                         <td className="px-6 py-4 text-white font-mono">₹{order.totalPrice}</td>
                                         <td className="px-6 py-4">
@@ -508,7 +478,7 @@ export default function AdminDashboard() {
                         </table>
                     </div>
 
-                    {/* MOBILE CARD VIEW */}
+                    {/* MOBILE CARD */}
                     <div className="md:hidden grid gap-4">
                         {filteredOrders.map(order => (
                             <motion.div 
@@ -521,7 +491,7 @@ export default function AdminDashboard() {
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-[#D4AF37] font-mono text-xs">#{order._id.slice(-6)}</span>
-                                            <PaymentBadge method={order.paymentInfo?.id === 'cod' ? 'cod' : 'online'} status={order.paymentInfo?.status} />
+                                            <PaymentBadge method={order.paymentInfo?.id === 'cod' ? 'cod' : 'online'} status={order.paymentInfo?.status} id={order.paymentInfo?.id} />
                                         </div>
                                         <h4 className="text-white font-bold text-lg">{order.user?.name || "Guest"}</h4>
                                         <p className="text-gray-500 text-xs">{new Date(order.createdAt).toLocaleDateString()}</p>
@@ -550,7 +520,6 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* 3. PRODUCT MANAGEMENT */}
             {activeTab === 'inventory' && (
                 <div className="max-w-4xl mx-auto pb-10">
                     {!masterProduct ? (
@@ -582,7 +551,6 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* 4. CLIENTS */}
             {activeTab === 'customers' && (
                 <div className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
@@ -610,7 +578,6 @@ export default function AdminDashboard() {
             )}
         </div>
 
-        {/* --- EDIT MODAL --- */}
         <AnimatePresence>
             {showEditModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -634,7 +601,7 @@ export default function AdminDashboard() {
             )}
         </AnimatePresence>
 
-        {/* --- ORDER DETAILS MODAL (NEW & CRITICAL) --- */}
+        {/* --- ORDER DETAILS MODAL (MANUAL UPI OPTIMIZED) --- */}
         <AnimatePresence>
             {showOrderModal && (
                 <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4">
@@ -663,16 +630,29 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
                                 
+                                {/* 🔥 PAYMENT INFO SECTION - SHOW UTR HERE */}
                                 <div>
                                     <h4 className="text-gray-500 uppercase text-xs font-bold tracking-widest mb-3 flex items-center gap-2"><CreditCard size={14}/> Payment Info</h4>
-                                    <div className="bg-[#050505] p-4 rounded-lg border border-white/10 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-white text-sm font-bold capitalize">{showOrderModal.paymentInfo?.id === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</p>
-                                            <p className={`text-xs mt-1 ${showOrderModal.paymentInfo?.status === 'succeeded' ? 'text-green-500' : 'text-orange-500'}`}>
-                                                Status: {showOrderModal.paymentInfo?.status === 'succeeded' ? 'PAID' : 'PENDING'}
+                                    <div className="bg-[#050505] p-4 rounded-lg border border-white/10 flex flex-col gap-2">
+                                        <div className="flex justify-between items-center">
+                                            <p className="text-white text-sm font-bold capitalize">
+                                                {showOrderModal.paymentInfo?.id === 'cod' ? 'Cash on Delivery' : 'Online / UPI'}
                                             </p>
+                                            {showOrderModal.paymentInfo?.id === 'cod' ? <Banknote className="text-orange-500" size={24}/> : <CreditCard className="text-green-500" size={24}/>}
                                         </div>
-                                        {showOrderModal.paymentInfo?.id === 'cod' ? <Banknote className="text-orange-500" size={24}/> : <CreditCard className="text-green-500" size={24}/>}
+                                        
+                                        {/* SHOW UTR IF NOT COD */}
+                                        {showOrderModal.paymentInfo?.id !== 'cod' && (
+                                            <div className="bg-[#1a1a1a] p-3 rounded border border-[#D4AF37]/30 mt-2">
+                                                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Transaction ID (UTR)</p>
+                                                <p className="text-[#D4AF37] font-mono font-bold text-lg select-all">{showOrderModal.paymentInfo?.id}</p>
+                                                <p className="text-[10px] text-gray-600 mt-1">Verify this ID in your bank statement.</p>
+                                            </div>
+                                        )}
+
+                                        <p className={`text-xs font-bold mt-2 ${showOrderModal.paymentInfo?.status === 'succeeded' ? 'text-green-500' : 'text-orange-500'}`}>
+                                            Status: {showOrderModal.paymentInfo?.status === 'succeeded' ? 'PAID' : 'PAYMENT PROCESSING'}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -703,7 +683,7 @@ export default function AdminDashboard() {
                                 Delete Order
                             </button>
                             <button onClick={(e) => { cycleStatus(showOrderModal._id, showOrderModal.orderStatus, e); setShowOrderModal(null); }} className="px-6 py-3 bg-[#D4AF37] text-black hover:bg-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(212,175,55,0.4)]">
-                                Update Status
+                                {showOrderModal.orderStatus === 'Delivered' ? 'Mark Completed' : 'Update Status'}
                             </button>
                         </div>
                      </motion.div>
