@@ -11,7 +11,10 @@ import AuthPage from './components/AuthPage';
 import OrderSuccess from './components/OrderSuccess';
 import Checkout from './components/Checkout';
 
-// --- NEW IMPORTS (Policy Pages) ---
+// Import Helper
+import AdminRoute from './components/AdminRoute'; // <--- YE IMPORT KARO
+
+// Import Policy Pages
 import { 
   PrivacyPolicy, TermsConditions, RefundPolicy, ShippingPolicy, ContactPage 
 } from './components/LegalPages';
@@ -24,17 +27,25 @@ function App() {
           {/* Public Landing Page */}
           <Route path="/" element={<Home />} />
           
-          {/* Auth Page (Login/Register) */}
+          {/* Auth Page */}
           <Route path="/auth" element={<AuthPage />} />
           
-          {/* Admin Dashboard */}
-          <Route path="/admin" element={<AdminDashboard />} />
+          {/* 🔥 PROTECTED ADMIN ROUTE 🔥 */}
+          {/* Ab AdminDashboard tabhi khulega jab AdminRoute allow karega */}
+          <Route 
+            path="/admin" 
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } 
+          />
           
-          {/* Checkout & Success Routes */}
+          {/* Checkout & Success */}
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/success" element={<OrderSuccess />} />
 
-          {/* --- LEGAL ROUTES (For Razorpay KYC) --- */}
+          {/* Legal Routes */}
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsConditions />} />
           <Route path="/refund" element={<RefundPolicy />} />
