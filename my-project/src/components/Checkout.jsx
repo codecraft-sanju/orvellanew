@@ -9,7 +9,7 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
   const navigate = useNavigate();
 
   // --- CONFIG ---
-  const UPI_ID = "sanju@upi"; // 🔥 APNA UPI ID YAHAN DALO (Display ke liye)
+  const UPI_ID = "9520615500@ibl"; 
   const COD_FEE = 50;
 
   // --- STATE ---
@@ -180,29 +180,29 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
                                         className={`border rounded-xl p-4 cursor-pointer transition-all ${paymentMethod === 'upi_manual' ? 'border-[#D4AF37] bg-[#D4AF37]/5' : 'border-white/10 hover:bg-white/5'}`}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentMethod === 'upi_manual' ? 'border-[#D4AF37]' : 'border-gray-500'}`}>
+                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${paymentMethod === 'upi_manual' ? 'border-[#D4AF37]' : 'border-gray-500'}`}>
                                                 {paymentMethod === 'upi_manual' && <div className="w-2 h-2 rounded-full bg-[#D4AF37]" />}
                                             </div>
                                             <span className="text-white font-bold text-sm flex items-center gap-2"><QrCode size={16}/> UPI QR (Scan & Pay)</span>
                                         </div>
 
                                         {paymentMethod === 'upi_manual' && (
-                                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pl-7 overflow-hidden">
-                                                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                                                    <div className="bg-white p-2 rounded-lg w-28 h-28 shrink-0">
-                                                        {/* 🔥 QR CODE IMAGE */}
-                                                        <img src="/qr-code.jpg" alt="Scan QR" className="w-full h-full object-contain" />
+                                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pl-0 md:pl-7 overflow-hidden">
+                                                {/* 🔥 IMPROVED QR SECTION */}
+                                                <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-6 flex flex-col items-center justify-center text-center mb-4">
+                                                    
+                                                    {/* QR IMAGE (Large & Clear) */}
+                                                    <div className="bg-white p-3 rounded-xl shadow-[0_0_25px_rgba(255,255,255,0.1)] mb-4">
+                                                        <img src="/qr-code.jpeg" alt="Scan QR" className="w-48 h-48 md:w-56 md:h-56 object-contain" />
                                                     </div>
-                                                    <div className="text-xs text-gray-400 space-y-2">
-                                                        <p>1. Scan QR Code using any UPI App.</p>
-                                                        <p>2. Pay Amount: <b className="text-white">₹{finalTotal}</b></p>
-                                                        <p className="flex items-center gap-2">
-                                                            <span className="bg-white/10 px-2 py-1 rounded text-gray-300 font-mono">{UPI_ID}</span>
-                                                            <button onClick={handleCopyUPI} className="hover:text-[#D4AF37]">
-                                                                {copied ? <Check size={14} className="text-green-500"/> : <Copy size={14}/>}
-                                                            </button>
-                                                        </p>
+
+                                                    {/* COPY UPI ID */}
+                                                    <div onClick={handleCopyUPI} className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-full border border-white/10 cursor-pointer hover:border-[#D4AF37]/50 transition-colors group mb-4">
+                                                        <span className="text-[#D4AF37] font-mono font-bold tracking-wider text-sm">{UPI_ID}</span>
+                                                        {copied ? <Check size={14} className="text-green-500"/> : <Copy size={14} className="text-gray-500 group-hover:text-white"/>}
                                                     </div>
+
+                                                    <p className="text-xs text-gray-400">Scan using GPay, PhonePe or Paytm</p>
                                                 </div>
                                                 
                                                 <div className="space-y-2">
@@ -227,15 +227,15 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentMethod === 'cod' ? 'border-[#D4AF37]' : 'border-gray-500'}`}>
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${paymentMethod === 'cod' ? 'border-[#D4AF37]' : 'border-gray-500'}`}>
                                                     {paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-[#D4AF37]" />}
                                                 </div>
                                                 <div>
                                                     <span className="text-white font-bold text-sm flex items-center gap-2"><Banknote size={16}/> Cash on Delivery</span>
-                                                    <p className="text-[10px] text-gray-500 ml-6 mt-0.5">Pay in cash upon delivery</p>
+                                                    <p className="text-[10px] text-gray-500 ml-0 md:ml-6 mt-0.5">Pay in cash upon delivery</p>
                                                 </div>
                                             </div>
-                                            <span className="text-xs font-bold text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-1 rounded">+₹{COD_FEE}</span>
+                                            <span className="text-xs font-bold text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-1 rounded shrink-0">+₹{COD_FEE}</span>
                                         </div>
                                     </div>
                                 </div>
