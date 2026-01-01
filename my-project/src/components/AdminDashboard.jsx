@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Package, Search, Bell, 
   CheckCircle, X, Edit, Trash2, Filter, DollarSign, LogOut, 
   Loader2, CreditCard, Banknote, QrCode, MapPin, ChevronRight,
-  TrendingUp, Menu
+  TrendingUp, Menu, Save, Shield, ShieldAlert
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -52,9 +52,7 @@ const StatCard = ({ title, value, subValue, icon: Icon, color }) => (
 
 const PaymentBadge = ({ method, status, id }) => {
     const isCOD = id === 'cod';
-    const isPaid = status === 'succeeded';
-    
-    // Manual UPI Logic: Not COD and ID doesn't start with standard gateway prefix (adjust logic as needed)
+    // Manual UPI Logic: Not COD and ID doesn't start with standard gateway prefix
     const isManualUPI = !isCOD && !id.startsWith('pay_');
 
     if (isCOD) {
@@ -86,17 +84,29 @@ export default function AdminDashboard() {
   const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // States
+  // Data States
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]); 
   const [customers, setCustomers] = useState([]);
-  const [actionLoading, setActionLoading] = useState(null); 
   
-  // UX States
-  const [showOrderSheet, setShowOrderSheet] = useState(null); // Changed to Sheet for mobile
-  const [showEditModal, setShowEditModal] = useState(false);
+  // Action/Loading States
+  const [actionLoading, setActionLoading] = useState(null); 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // UI Interaction States
+  const [showOrderSheet, setShowOrderSheet] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Edit Product Form State
+  const [productForm, setProductForm] = useState({
+    _id: null,
+    name: "",
+    price: "",
+    description: "",
+    stock: 0,
+    imageUrl: ""
+  });
 
   // --- DATA FETCHING ---
   const fetchData = async () => {
@@ -144,7 +154,7 @@ export default function AdminDashboard() {
     }));
   }, [orders]);
 
-  // --- ACTIONS ---
+  // --- ORDER ACTIONS ---
   const cycleStatus = async (id, currentStatus, e) => {
     e?.stopPropagation();
     setActionLoading({ id, type: 'status' });
@@ -154,7 +164,7 @@ export default function AdminDashboard() {
     try {
         await axios.put(`${API_URL}/admin/order/${id}`, { status: nextStatus }, { withCredentials: true });
         setOrders(orders.map(o => o._id === id ? { ...o, orderStatus: nextStatus } : o));
-        if(showOrderSheet?._id === id) setShowOrderSheet(prev => ({...prev, orderStatus: nextStatus})); // Update sheet if open
+        if(showOrderSheet?._id === id) setShowOrderSheet(prev => ({...prev, orderStatus: nextStatus})); 
         showNotification(`Order: ${nextStatus}`);
     } catch (e) { showNotification("Failed"); } 
     finally { setActionLoading(null); }
@@ -170,6 +180,53 @@ export default function AdminDashboard() {
         showNotification("Deleted");
     } catch (e) { showNotification("Failed"); } 
     finally { setActionLoading(null); }
+  };
+
+  // --- USER ROLE MANAGEMENT ---
+  const toggleUserRole = async (user) => {
+      const newRole = user.role === 'admin' ? 'user' : 'admin';
+      if(!window.confirm(`Are you sure you want to change ${user.name}'s role to ${newRole.toUpperCase()}?`)) return;
+      
+      setActionLoading({ id: user._id, type: 'role' });
+      try {
+          await axios.put(`${API_URL}/admin/user/${user._id}`, { role: newRole }, { headers: { "Content-Type": "application/json" }, withCredentials: true });
+          setCustomers(customers.map(u => u._id === user._id ? { ...u, role: newRole } : u));
+          showNotification(`User is now ${newRole.toUpperCase()}`);
+      } catch (error) { showNotification("Failed to update role"); }
+      finally { setActionLoading(null); }
+  };
+
+  // --- PRODUCT MANAGEMENT ---
+  const openEditModal = () => {
+    if (products.length === 0) return;
+    const currentProduct = products[0]; 
+    setProductForm({
+        _id: currentProduct._id,
+        name: currentProduct.name,
+        price: currentProduct.price,
+        description: currentProduct.description,
+        stock: currentProduct.stock,
+        imageUrl: currentProduct.images?.[0]?.url || ""
+    });
+    setShowEditModal(true);
+  };
+
+  const handleProductUpdate = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+        const updateData = {
+            ...productForm,
+            images: [{ public_id: "update_" + Date.now(), url: productForm.imageUrl }]
+        };
+        const { data } = await axios.put(`${API_URL}/admin/product/${productForm._id}`, updateData, {
+            headers: { "Content-Type": "application/json" }, withCredentials: true
+        });
+        setProducts([data.product]); 
+        showNotification("Product Updated!");
+        setShowEditModal(false);
+    } catch (error) { showNotification("Update Failed"); } 
+    finally { setIsSubmitting(false); }
   };
 
   // --- FILTERING ---
@@ -189,7 +246,7 @@ export default function AdminDashboard() {
       </div>
   );
 
-  const masterProduct = products[0];
+  const masterProduct = products.length > 0 ? products[0] : null;
 
   return (
     <div className="h-screen bg-[#050505] text-[#E0E0E0] font-sans overflow-hidden flex flex-col selection:bg-[#D4AF37] selection:text-black">
@@ -237,14 +294,12 @@ export default function AdminDashboard() {
         {/* VIEW: DASHBOARD */}
         {activeTab === 'dashboard' && (
             <div className="p-4 space-y-6">
-                {/* Horizontal Scrolling Stats */}
                 <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
                     <StatCard title="Total Sales" value={`₹${stats.totalRevenue.toLocaleString()}`} icon={DollarSign} color="text-[#D4AF37]" />
                     <StatCard title="Pending COD" value={`₹${stats.pendingCod.toLocaleString()}`} icon={Banknote} color="text-orange-400" />
                     <StatCard title="Total Orders" value={orders.length} icon={ShoppingBag} color="text-purple-400" />
                 </div>
 
-                {/* Chart */}
                 <div className="bg-[#121212] border border-white/5 p-4 rounded-xl">
                     <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><TrendingUp size={16} className="text-[#D4AF37]"/> Sales Trend</h3>
                     <div className="h-[200px] w-full">
@@ -263,7 +318,6 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Recent Activity Mini List */}
                 <div>
                     <h3 className="text-sm font-bold text-gray-400 uppercase mb-3 px-1">Recent Activity</h3>
                     <div className="space-y-3">
@@ -292,7 +346,6 @@ export default function AdminDashboard() {
         {/* VIEW: ORDERS */}
         {activeTab === 'orders' && (
             <div className="p-4 space-y-4">
-                {/* Search Bar */}
                 <div className="relative">
                     <input 
                         type="text" 
@@ -304,7 +357,6 @@ export default function AdminDashboard() {
                     <Search className="absolute left-3 top-3.5 text-gray-500" size={16} />
                 </div>
 
-                {/* Horizontal Filter Chips */}
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                     {['All', 'Pending', 'COD', 'Online'].map(f => (
                         <button 
@@ -317,7 +369,6 @@ export default function AdminDashboard() {
                     ))}
                 </div>
 
-                {/* Orders List (Cards) */}
                 <div className="space-y-3 pb-20">
                     {filteredOrders.length > 0 ? filteredOrders.map(order => (
                         <div key={order._id} onClick={() => setShowOrderSheet(order)} className="bg-[#121212] border border-white/5 p-4 rounded-xl shadow-lg relative overflow-hidden active:bg-white/5 transition-colors">
@@ -366,7 +417,10 @@ export default function AdminDashboard() {
                          <div className="p-5">
                             <h2 className="text-xl font-serif text-white">{masterProduct.name}</h2>
                             <p className="text-[#D4AF37] font-serif text-lg mt-1 mb-4">₹{masterProduct.price}</p>
-                            <button className="w-full py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
+                            <button 
+                                onClick={openEditModal}
+                                className="w-full py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center gap-2 text-sm uppercase tracking-wide hover:bg-white transition-colors"
+                            >
                                 <Edit size={16}/> Edit Product
                             </button>
                          </div>
@@ -381,13 +435,33 @@ export default function AdminDashboard() {
         {activeTab === 'customers' && (
             <div className="p-4 space-y-3">
                 {customers.map(u => (
-                    <div key={u._id} className="bg-[#121212] border border-white/5 p-4 rounded-xl flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[#D4AF37] text-black flex items-center justify-center font-bold">{u.name[0]}</div>
-                        <div className="flex-1">
-                            <p className="text-white font-bold text-sm">{u.name}</p>
-                            <p className="text-gray-500 text-xs truncate w-48">{u.email}</p>
+                    <div key={u._id} className="bg-[#121212] border border-white/5 p-4 rounded-xl flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-black ${u.role === 'admin' ? 'bg-purple-500' : 'bg-[#D4AF37]'}`}>
+                                {u.name[0]}
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <p className="text-white font-bold text-sm flex items-center gap-2">
+                                    {u.name}
+                                    {u.role === 'admin' && <Shield size={12} className="text-purple-400" fill="currentColor"/>}
+                                </p>
+                                <p className="text-gray-500 text-xs truncate">{u.email}</p>
+                            </div>
                         </div>
-                        <div className="text-xs bg-white/10 px-2 py-1 rounded text-white uppercase">{u.role}</div>
+                        
+                        <button 
+                            onClick={() => toggleUserRole(u)}
+                            disabled={actionLoading?.id === u._id}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                                u.role === 'admin' 
+                                ? 'border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20' 
+                                : 'border-purple-500/30 text-purple-400 bg-purple-500/10 hover:bg-purple-500/20'
+                            }`}
+                        >
+                            {actionLoading?.id === u._id && actionLoading?.type === 'role' ? <Loader2 className="animate-spin" size={12}/> : (
+                                u.role === 'admin' ? 'Demote' : 'Promote'
+                            )}
+                        </button>
                     </div>
                 ))}
             </div>
@@ -420,7 +494,7 @@ export default function AdminDashboard() {
         ))}
       </nav>
 
-      {/* --- SLIDE-UP BOTTOM SHEET FOR ORDER DETAILS --- */}
+      {/* --- ORDER DETAILS SHEET --- */}
       <AnimatePresence>
         {showOrderSheet && (
             <>
@@ -429,7 +503,6 @@ export default function AdminDashboard() {
                     initial={{y: "100%"}} animate={{y: 0}} exit={{y: "100%"}} transition={{type: "spring", damping: 25, stiffness: 200}}
                     className="fixed bottom-0 left-0 w-full bg-[#121212] border-t border-[#D4AF37]/30 rounded-t-3xl z-50 h-[85vh] flex flex-col shadow-2xl"
                 >
-                    {/* Sheet Header */}
                     <div className="flex items-center justify-between p-6 border-b border-white/5 bg-[#121212] rounded-t-3xl sticky top-0 z-10">
                         <div>
                             <span className="text-[#D4AF37] text-xs font-mono">ORDER #{showOrderSheet._id.slice(-6)}</span>
@@ -438,10 +511,7 @@ export default function AdminDashboard() {
                         <button onClick={() => setShowOrderSheet(null)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><X size={18}/></button>
                     </div>
 
-                    {/* Sheet Content (Scrollable) */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        
-                        {/* Status Card */}
                         <div className="bg-[#050505] p-4 rounded-xl border border-white/10">
                              <div className="flex justify-between items-center mb-2">
                                 <span className="text-gray-400 text-xs uppercase font-bold">Current Status</span>
@@ -458,7 +528,6 @@ export default function AdminDashboard() {
                              </div>
                         </div>
 
-                        {/* Customer Info */}
                         <div>
                             <h4 className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><Users size={12}/> Customer</h4>
                             <div className="bg-[#050505] p-4 rounded-xl border border-white/10">
@@ -468,7 +537,6 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        {/* Items */}
                         <div>
                             <h4 className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><Package size={12}/> Items</h4>
                             <div className="space-y-2">
@@ -489,7 +557,6 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        {/* Payment Details (UTR) */}
                          <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#D4AF37]/20">
                             <h4 className="text-[#D4AF37] text-xs font-bold uppercase mb-2">Payment Details</h4>
                             <div className="grid grid-cols-2 gap-4 text-xs">
@@ -512,10 +579,9 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         
-                        <div className="h-20" /> {/* Spacer for fixed bottom buttons */}
+                        <div className="h-20" />
                     </div>
 
-                    {/* Fixed Actions at Bottom of Sheet */}
                     <div className="absolute bottom-0 left-0 w-full bg-[#121212] border-t border-white/10 p-4 flex gap-3 pb-8">
                         <button 
                             onClick={() => deleteOrder(showOrderSheet._id)}
@@ -532,9 +598,50 @@ export default function AdminDashboard() {
                             )}
                         </button>
                     </div>
-
                 </motion.div>
             </>
+        )}
+      </AnimatePresence>
+
+      {/* --- EDIT PRODUCT MODAL --- */}
+      <AnimatePresence>
+        {showEditModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+                <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="bg-[#121212] border border-[#D4AF37]/50 w-full max-w-lg rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <h2 className="text-xl font-serif text-[#D4AF37] mb-6 flex items-center gap-2"><Edit size={20}/> Edit Product</h2>
+                    <form onSubmit={handleProductUpdate} className="space-y-4">
+                        <div>
+                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Product Name</label>
+                            <input type="text" placeholder="Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none mt-1"/>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Price (₹)</label>
+                                <input type="number" placeholder="Price" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none mt-1"/>
+                            </div>
+                            <div>
+                                <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Stock Qty</label>
+                                <input type="number" placeholder="Stock" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none mt-1"/>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Image URL</label>
+                            <input type="text" placeholder="Image URL" value={productForm.imageUrl} onChange={e => setProductForm({...productForm, imageUrl: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none text-xs mt-1"/>
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Description</label>
+                            <textarea placeholder="Description" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none h-32 resize-none mt-1"/>
+                        </div>
+                        <div className="flex gap-3 mt-4">
+                            <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-3 bg-white/5 text-gray-400 font-bold uppercase rounded-xl hover:bg-white/10 transition-colors">Cancel</button>
+                            <button type="submit" disabled={isSubmitting} className="flex-1 bg-[#D4AF37] text-black font-bold uppercase py-3 rounded-xl hover:bg-white transition-colors flex items-center justify-center gap-2">
+                                {isSubmitting ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Changes</>}
+                            </button>
+                        </div>
+                    </form>
+                </motion.div>
+            </div>
         )}
       </AnimatePresence>
 
