@@ -2,10 +2,14 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Clock, AlertTriangle, PackageCheck } from "lucide-react";
 
-const OrderSuccess= ({ onClose, onContinueShopping, orderDetails }) => {
-  // Check payment method
-  const isCOD = orderDetails?.method === 'cod';
-  const isManualPayment = orderDetails?.method === 'upi_manual';
+const OrderSuccess = ({ onClose, onContinueShopping, orderDetails }) => {
+  // Fix: Agar orderDetails abhi tak set nahi hua hai, toh render mat karo (Glitch prevent karne ke liye)
+  if (!orderDetails) return null;
+
+  // Check payment method (Case insensitive check for safety)
+  const method = orderDetails?.method?.toLowerCase() || "";
+  const isCOD = method === 'cod';
+  const isManualPayment = method === 'upi_manual';
 
   return (
     <motion.div 

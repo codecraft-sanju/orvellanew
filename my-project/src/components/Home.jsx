@@ -123,12 +123,15 @@ export default function Home() {
     setIsCheckoutOpen(true);
   };
 
-  // --- 🔥 YE FUNCTION MISSING THA YA SAHI JAGAH NAHI THA ---
-  // Isko yaha component ke andar define hona zaroori hai
+
   const handleConfirmOrder = (method) => {
-    setIsCheckoutOpen(false);       // Checkout modal band karo
-    setLastOrderDetails({ method }); // Payment method save karo (cod/upi)
-    setShowOrderSuccess(true);      // Success modal dikhao
+   setLastOrderDetails({ method: method }); 
+    
+    
+    setIsCheckoutOpen(false); 
+    
+    
+    setShowOrderSuccess(true);   
   };
 
   const handleContinueShopping = () => {
@@ -607,7 +610,7 @@ export default function Home() {
                         <li><button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">Home</button></li>
                         <li><button onClick={() => scrollToSection('details')} className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">The Scent</button></li>
                         <li><button onClick={() => scrollToSection('offer')} className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">Offer</button></li>
-                        <li><Link to="#" className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">Contact</Link></li>
+                        <li><Link to="/contact" className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">Contact</Link></li>
                     </ul>
                 </div>
 
