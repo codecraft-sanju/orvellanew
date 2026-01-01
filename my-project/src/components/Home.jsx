@@ -8,9 +8,9 @@ import {
 
 // --- IMPORTS ---
 import { useShop } from "./ShopContext"; 
-import CheckoutModal from "./Checkout";          
+import CheckoutModal from "./Checkout";           
 import OrderSuccessModal from "./OrderSuccess";  
-import {                                              
+import {                                                      
   NoiseOverlay, CustomCursor, AnimatedTitle, 
   RevealOnScroll, TiltCard 
 } from "./MotionComponents";
@@ -123,20 +123,18 @@ export default function Home() {
     setIsCheckoutOpen(true);
   };
 
+  // --- 🔥 YE FUNCTION MISSING THA YA SAHI JAGAH NAHI THA ---
+  // Isko yaha component ke andar define hona zaroori hai
   const handleConfirmOrder = (method) => {
-    setIsCheckoutOpen(false);
-    setLastOrderDetails({ method }); 
-    setShowOrderSuccess(true);
+    setIsCheckoutOpen(false);       // Checkout modal band karo
+    setLastOrderDetails({ method }); // Payment method save karo (cod/upi)
+    setShowOrderSuccess(true);      // Success modal dikhao
   };
 
   const handleContinueShopping = () => {
-    // 1. Modal band karo
     setShowOrderSuccess(false);
-
-    // 2. Purane order ka data clear karo
     setLastOrderDetails(null);
-
-    // 3. Seedha page ke top par scroll karo (Home Page)
+    navigate("/");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -187,7 +185,8 @@ export default function Home() {
                 cart={cart}
                 subtotal={cartTotal}
                 onClose={() => setIsCheckoutOpen(false)}
-                
+                // 👇 Yaha hum wo function pass kar rahe hain
+                onOrderSuccess={handleConfirmOrder}
             />
         )}
       </AnimatePresence>
@@ -459,12 +458,12 @@ export default function Home() {
             className="relative h-[500px] md:h-[800px] w-full flex justify-center items-center"
           >
              <TiltCard>
-                <motion.img 
-                  src={heroProduct.images[0].url} 
-                  alt="Orvella Perfume Bottle" 
-                  className="w-full h-full object-contain drop-shadow-[0_30px_60px_rgba(212,175,55,0.15)] z-20"
-                  animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-                />
+               <motion.img 
+                 src={heroProduct.images[0].url} 
+                 alt="Orvella Perfume Bottle" 
+                 className="w-full h-full object-contain drop-shadow-[0_30px_60px_rgba(212,175,55,0.15)] z-20"
+                 animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+               />
              </TiltCard>
           </motion.div>
         </div>

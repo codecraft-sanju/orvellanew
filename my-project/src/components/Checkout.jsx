@@ -4,7 +4,8 @@ import { X, Loader2, QrCode, Banknote, ArrowRight, MapPin, Phone, Copy, Check } 
 import { useShop } from "./ShopContext"; 
 import { useNavigate } from "react-router-dom";
 
-const Checkout = ({ cart, subtotal, onClose }) => {
+// Note: Ensure Home.jsx passes 'onOrderSuccess' prop to this component
+const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
   const { processOrder, user } = useShop(); 
   const navigate = useNavigate();
 
@@ -78,9 +79,18 @@ const Checkout = ({ cart, subtotal, onClose }) => {
         isCodFeeApplied: paymentMethod === 'cod'
     };
 
+    // Backend process call
     await processOrder(paymentDetails, shippingInfo, navigate);
-    // Note: Timeout hata diya hai kyunki processOrder successful hone par modal waise bhi band ho jayega ya redirect hoga
-    setTimeout(() => { setIsProcessing(false); }, 2000);
+    
+    // Success handling with Timeout for UX
+    setTimeout(() => { 
+        setIsProcessing(false); 
+        
+        // 🔥 IMPORTANT FIX: Call the parent handler with the method used
+        if (onOrderSuccess) {
+            onOrderSuccess(paymentMethod);
+        }
+    }, 2000);
   };
 
   return (
