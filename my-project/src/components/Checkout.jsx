@@ -4,7 +4,7 @@ import { X, Loader2, QrCode, Banknote, ArrowRight, MapPin, Phone, Copy, Check } 
 import { useShop } from "./ShopContext"; 
 import { useNavigate } from "react-router-dom";
 
-const CheckoutModal = ({ cart, subtotal, onClose }) => {
+const Checkout = ({ cart, subtotal, onClose }) => {
   const { processOrder, user } = useShop(); 
   const navigate = useNavigate();
 
@@ -304,4 +304,4 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
   );
 };
 
-export default CheckoutModal;
+export default Checkout;
