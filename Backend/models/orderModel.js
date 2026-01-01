@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema({
   shippingInfo: {
@@ -28,40 +28,27 @@ const orderSchema = new mongoose.Schema({
     required: true,
   },
   paymentInfo: {
-    id: { type: String, required: true },
-    status: { type: String, required: true }, 
+    id: { type: String, required: true }, // Razorpay Order ID or 'cod'
+    status: { type: String, required: true }, // 'succeeded' or 'pending'
   },
   paidAt: {
     type: Date,
-    required: true,
   },
-  itemsPrice: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  taxPrice: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  shippingPrice: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  totalPrice: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
+  itemsPrice: { type: Number, default: 0 },
+  taxPrice: { type: Number, default: 0 },
+  shippingPrice: { type: Number, default: 0 },
+  totalPrice: { type: Number, default: 0 },
+  
   orderStatus: {
     type: String,
     required: true,
-    default: "Pending", 
-    enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"]
+    default: "Pending", // Pending -> Shipped -> Delivered
   },
   deliveredAt: Date,
-}, { timestamps: true });
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = mongoose.model("Order", orderSchema);

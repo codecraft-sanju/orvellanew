@@ -1,10 +1,9 @@
-const Product = require('../models/Product');
+const Product = require("../models/productModel");
 
-// @desc    Create new product (Admin)
-// @route   POST /api/v1/admin/product/new
+// Create Product (Admin)
 exports.createProduct = async (req, res, next) => {
   try {
-    req.body.user = req.user.id; // Assign creator
+    req.body.user = req.user.id; // Admin ki ID attach karein
     const product = await Product.create(req.body);
     res.status(201).json({ success: true, product });
   } catch (error) {
@@ -12,71 +11,48 @@ exports.createProduct = async (req, res, next) => {
   }
 };
 
-// @desc    Get all products (with Search)
-// @route   GET /api/v1/products
+// Get All Products
 exports.getAllProducts = async (req, res, next) => {
   try {
-    const { keyword } = req.query;
-    
-    // Search Filter Logic
-    const queryObj = keyword ? {
-        name: { $regex: keyword, $options: "i" }
-    } : {};
-
-    const products = await Product.find(queryObj);
-    const productCount = await Product.countDocuments();
-
-    res.status(200).json({
-      success: true,
-      products,
-      productCount,
-    });
+    const products = await Product.find();
+    res.status(200).json({ success: true, products });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Get single product details
-// @route   GET /api/v1/product/:id
+// Get Product Details
 exports.getProductDetails = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) {
-        return res.status(404).json({ success: false, message: "Product not found" });
-    }
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    
     res.status(200).json({ success: true, product });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Update Product (Admin)
-// @route   PUT /api/v1/admin/product/:id
+// Update Product (Admin)
 exports.updateProduct = async (req, res, next) => {
   try {
     let product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
 
-    product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-
+    product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json({ success: true, product });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Delete Product (Admin)
-// @route   DELETE /api/v1/admin/product/:id
+// Delete Product (Admin)
 exports.deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
 
     await product.deleteOne();
-
     res.status(200).json({ success: true, message: "Product Deleted Successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

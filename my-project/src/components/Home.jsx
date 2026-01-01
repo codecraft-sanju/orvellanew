@@ -1,402 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  motion, 
-  useTransform, 
-  useScroll,
-  AnimatePresence,
-  useMotionValue,
-  useSpring
-} from "framer-motion";
+import { motion, useTransform, useScroll, AnimatePresence } from "framer-motion";
 import { 
   ShoppingBag, Menu, X, Star, ShieldCheck, Truck, 
-  Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight,
-  CreditCard, Banknote, Loader2, CheckCircle2
+  Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight 
 } from "lucide-react";
 
-// --- SIBLING IMPORT ---
+// --- IMPORTS ---
 import { useShop } from "./ShopContext"; 
-
-// ==========================================
-// 1. COMPONENT: CINEMATIC NOISE OVERLAY
-// ==========================================
-const NoiseOverlay = () => (
-  <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.03] mix-blend-overlay">
-    <svg className="w-full h-full">
-      <filter id="noiseFilter">
-        <feTurbulence type="fractalNoise" baseFrequency="0.80" numOctaves="3" stitchTiles="stitch" />
-      </filter>
-      <rect width="100%" height="100%" filter="url(#noiseFilter)" />
-    </svg>
-  </div>
-);
-
-// ==========================================
-// 2. COMPONENT: MAGNETIC CUSTOM CURSOR
-// ==========================================
-const CustomCursor = () => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [isHovering, setIsHovering] = useState(false);
-
-  useEffect(() => {
-    const mouseMove = (e) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-      const target = e.target;
-      if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('button') || target.closest('a') || target.closest('.clickable')) {
-        setIsHovering(true);
-      } else {
-        setIsHovering(false);
-      }
-    };
-    window.addEventListener("mousemove", mouseMove);
-    return () => window.removeEventListener("mousemove", mouseMove);
-  }, []);
-
-  return (
-    <motion.div
-      className="fixed top-0 left-0 w-8 h-8 rounded-full border border-[#D4AF37] pointer-events-none z-[9999] hidden md:flex items-center justify-center mix-blend-difference"
-      animate={{
-        x: mousePos.x - 16,
-        y: mousePos.y - 16,
-        scale: isHovering ? 2 : 1,
-        backgroundColor: isHovering ? "#D4AF37" : "transparent",
-      }}
-      transition={{ type: "spring", stiffness: 150, damping: 15, mass: 0.1 }}
-    />
-  );
-};
-
-// ==========================================
-// 3. COMPONENT: ANIMATED TITLE
-// ==========================================
-const AnimatedTitle = ({ text, className }) => {
-  const words = text.split(" ");
-
-  const container = {
-    hidden: { opacity: 0 },
-    visible: (i = 1) => ({
-      opacity: 1,
-      transition: { staggerChildren: 0.12, delayChildren: 0.04 * i },
-    }),
-  };
-
-  const child = {
-    visible: { opacity: 1, y: 0, transition: { type: "spring", damping: 12, stiffness: 100 } },
-    hidden: { opacity: 0, y: 50, transition: { type: "spring", damping: 12, stiffness: 100 } },
-  };
-
-  return (
-    <motion.h1 
-      variants={container} 
-      initial="hidden" 
-      animate="visible" 
-      className={`flex flex-wrap ${className}`}
-    >
-      {words.map((word, index) => (
-        <motion.div 
-          key={index} 
-          className="inline-block whitespace-nowrap mr-[0.25em] last:mr-0"
-          variants={container}
-        >
-          {Array.from(word).map((letter, i) => (
-            <motion.span variants={child} key={i} className="inline-block">
-              {letter}
-            </motion.span>
-          ))}
-        </motion.div>
-      ))}
-    </motion.h1>
-  );
-};
-
-// ==========================================
-// 4. COMPONENT: SCROLL REVEAL WRAPPER
-// ==========================================
-const RevealOnScroll = ({ children, delay = 0 }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 40 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-100px" }}
-    transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }}
-  >
-    {children}
-  </motion.div>
-);
-
-// ==========================================
-// 5. COMPONENT: 3D TILT CARD
-// ==========================================
-const TiltCard = ({ children }) => {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useSpring(useTransform(y, [-100, 100], [10, -10]));
-  const rotateY = useSpring(useTransform(x, [-100, 100], [-10, 10]));
-
-  function handleMouseMove(event) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
-    x.set(xPct * 200);
-    y.set(yPct * 200);
-  }
-
-  function handleMouseLeave() {
-    x.set(0);
-    y.set(0);
-  }
-
-  return (
-    <motion.div
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      className="relative w-full h-full flex items-center justify-center perspective-1000 group"
-    >
-      <div className="absolute inset-0 bg-[#D4AF37]/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-      {children}
-    </motion.div>
-  );
-};
-
-// ==========================================
-// 6. COMPONENT: CHECKOUT MODAL (NEW)
-// ==========================================
-const CheckoutModal = ({ cart, subtotal, onClose, onConfirmOrder }) => {
-  const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' or 'cod'
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  const COD_FEE = 50;
-  const finalTotal = paymentMethod === 'cod' ? subtotal + COD_FEE : subtotal;
-
-  const handlePlaceOrder = () => {
-    setIsProcessing(true);
-    // Simulate API call / Payment Gateway
-    setTimeout(() => {
-        setIsProcessing(false);
-        onConfirmOrder(paymentMethod);
-    }, 2500);
-  };
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
-
-      <motion.div 
-        initial={{ scale: 0.95, opacity: 0, y: 20 }} 
-        animate={{ scale: 1, opacity: 1, y: 0 }} 
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="relative z-10 bg-[#0a0a0a] border border-[#D4AF37]/30 w-full max-w-2xl rounded-sm overflow-hidden flex flex-col md:flex-row shadow-[0_0_80px_rgba(212,175,55,0.2)]"
-      >
-        {isProcessing ? (
-             <div className="w-full h-[500px] flex flex-col items-center justify-center p-12 text-center">
-                <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="mb-6"
-                >
-                    <Loader2 size={64} className="text-[#D4AF37]" />
-                </motion.div>
-                <h3 className="text-2xl font-serif text-white mb-2">Processing Payment</h3>
-                <p className="text-gray-400 text-sm tracking-widest uppercase">
-                    {paymentMethod === 'online' ? "Connecting to Gateway..." : "Confirming Order..."}
-                </p>
-             </div>
-        ) : (
-            <>
-                {/* Left Side: Order Summary */}
-                <div className="w-full md:w-1/2 p-8 border-b md:border-b-0 md:border-r border-white/10 bg-[#050505]">
-                    <h3 className="text-[#D4AF37] font-serif text-xl mb-6 tracking-wide">Order Summary</h3>
-                    <div className="space-y-4 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
-                        {cart.map((item) => (
-                            <div key={item._id} className="flex justify-between items-center text-sm">
-                                <span className="text-gray-300">{item.name} <span className="text-gray-500">x{item.qty}</span></span>
-                                <span className="text-white font-mono">₹{item.price * item.qty}</span>
-                            </div>
-                        ))}
-                    </div>
-                    
-                    <div className="mt-6 pt-6 border-t border-white/10 space-y-3 text-sm">
-                        <div className="flex justify-between text-gray-400">
-                            <span>Subtotal</span>
-                            <span>₹{subtotal.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between text-gray-400">
-                            <span>Shipping</span>
-                            <span className="text-green-500">FREE</span>
-                        </div>
-                        {paymentMethod === 'cod' && (
-                             <motion.div 
-                                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                                className="flex justify-between text-[#D4AF37]"
-                             >
-                                <span>COD Fee</span>
-                                <span>+₹{COD_FEE}</span>
-                             </motion.div>
-                        )}
-                        <div className="flex justify-between text-white text-lg font-bold border-t border-white/10 pt-4 mt-2">
-                            <span>Total</span>
-                            <span>₹{finalTotal.toLocaleString()}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Side: Payment Method */}
-                <div className="w-full md:w-1/2 p-8 flex flex-col justify-between">
-                    <div>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-white font-serif text-xl">Payment Method</h3>
-                            <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={20}/></button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {/* Option 1: Online */}
-                            <label 
-                                className={`flex items-center gap-4 p-4 border rounded cursor-pointer transition-all duration-300 clickable ${
-                                    paymentMethod === 'online' 
-                                    ? 'border-[#D4AF37] bg-[#D4AF37]/10' 
-                                    : 'border-white/10 hover:border-white/30'
-                                }`}
-                                onClick={() => setPaymentMethod('online')}
-                            >
-                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === 'online' ? 'border-[#D4AF37]' : 'border-gray-500'}`}>
-                                    {paymentMethod === 'online' && <div className="w-3 h-3 rounded-full bg-[#D4AF37]" />}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-white font-bold text-sm">Online Payment</span>
-                                        <CreditCard size={18} className="text-gray-400"/>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">UPI, Credit Card, Net Banking</p>
-                                </div>
-                            </label>
-
-                            {/* Option 2: COD */}
-                            <label 
-                                className={`flex items-center gap-4 p-4 border rounded cursor-pointer transition-all duration-300 clickable ${
-                                    paymentMethod === 'cod' 
-                                    ? 'border-[#D4AF37] bg-[#D4AF37]/10' 
-                                    : 'border-white/10 hover:border-white/30'
-                                }`}
-                                onClick={() => setPaymentMethod('cod')}
-                            >
-                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === 'cod' ? 'border-[#D4AF37]' : 'border-gray-500'}`}>
-                                    {paymentMethod === 'cod' && <div className="w-3 h-3 rounded-full bg-[#D4AF37]" />}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-white font-bold text-sm">Cash on Delivery</span>
-                                        <Banknote size={18} className="text-gray-400"/>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">Pay with cash upon arrival (+₹50)</p>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <button 
-                        onClick={handlePlaceOrder}
-                        className="mt-8 w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
-                    >
-                        {paymentMethod === 'online' ? `Pay ₹${finalTotal}` : `Place Order ₹${finalTotal}`}
-                    </button>
-                </div>
-            </>
-        )}
-      </motion.div>
-    </motion.div>
-  );
-};
-
-// ==========================================
-// 7. COMPONENT: ULTIMATE SUCCESS MODAL (UPDATED)
-// ==========================================
-const OrderSuccessModal = ({ onClose, onContinueShopping, orderDetails }) => {
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[120] flex items-center justify-center px-4"
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" onClick={onClose} />
-      
-      <motion.div 
-        initial={{ scale: 0.5, opacity: 0, y: 50 }} 
-        animate={{ scale: 1, opacity: 1, y: 0 }} 
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ type: "spring", duration: 0.8, bounce: 0.3 }}
-        className="relative z-10 bg-[#0a0a0a] border border-[#D4AF37] w-full max-w-md rounded-lg p-10 text-center shadow-[0_0_100px_rgba(212,175,55,0.3)] overflow-hidden"
-      >
-        {/* Animated Background Rays */}
-        <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,_transparent_0%,_#D4AF3710_25%,_transparent_50%,_#D4AF3710_75%,_transparent_100%)] animate-[spin_10s_linear_infinite] opacity-50" />
-
-        {/* --- THE CINEMATIC TICK ANIMATION --- */}
-        <div className="relative mb-8 flex justify-center items-center">
-            <motion.div 
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 0.2 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="absolute w-32 h-32 rounded-full bg-[#D4AF37] blur-xl"
-            />
-            
-            <svg width="120" height="120" viewBox="0 0 100 100" className="relative z-10">
-                <motion.circle 
-                    cx="50" cy="50" r="45" 
-                    fill="none" stroke="#D4AF37" strokeWidth="2"
-                    initial={{ pathLength: 0, rotate: -90, opacity: 0 }}
-                    animate={{ pathLength: 1, rotate: 0, opacity: 1 }}
-                    transition={{ duration: 0.8, ease: "easeInOut" }}
-                />
-                <motion.path 
-                    d="M30 52 L43 65 L70 35" 
-                    fill="none" stroke="#D4AF37" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 0.4, type: "spring" }}
-                />
-            </svg>
-        </div>
-
-        <motion.h2 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-            className="text-3xl font-serif text-white mb-2 tracking-wide uppercase"
-        >
-            Order Placed
-        </motion.h2>
-        
-        <motion.p 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-            className="text-gray-400 text-sm mb-6 leading-relaxed font-light"
-        >
-            Your legacy has been secured. <br/>
-            Payment Mode: <span className="text-white font-bold">{orderDetails?.method === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</span>
-        </motion.p>
-
-        <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
-            className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 p-3 mb-8 rounded"
-        >
-             <p className="text-[#D4AF37] font-mono text-xs">ID: #ORV-{Math.floor(1000 + Math.random() * 9000)}</p>
-        </motion.div>
-
-        <motion.button 
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }}
-            onClick={onContinueShopping} 
-            className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-sm shadow-[0_0_20px_rgba(212,175,55,0.4)]"
-        >
-            Continue Shopping
-        </motion.button>
-      </motion.div>
-    </motion.div>
-  );
-};
+import CheckoutModal from "./Checkout";          // <-- IMPORTED
+import OrderSuccessModal from "./OrderSuccess";  // <-- IMPORTED
+import {                                              // <-- IMPORTED
+  NoiseOverlay, CustomCursor, AnimatedTitle, 
+  RevealOnScroll, TiltCard 
+} from "./MotionComponents";
 
 // ==========================================
 // MAIN PAGE COMPONENT
@@ -413,14 +30,13 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null); 
   
-  // --- NEW STATE FOR CHECKOUT ---
+  // --- STATE FOR CHECKOUT ---
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [lastOrderDetails, setLastOrderDetails] = useState(null);
 
   const navigate = useNavigate();
   const { scrollY } = useScroll();
   
-  // Parallax Values
   const yHeroText = useTransform(scrollY, [0, 500], [0, 150]);
   const yHeroImage = useTransform(scrollY, [0, 500], [0, -50]);
 
@@ -433,14 +49,12 @@ export default function Home() {
 
   // Body Scroll Lock & Back Button Handling
   useEffect(() => {
-    // 1. Lock Body Scroll
     if (mobileMenuOpen || showOrderSuccess || selectedProduct || isCheckoutOpen) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = 'unset';
     }
 
-    // 2. Handle Browser Back Button (Mobile/Desktop)
     const handlePopState = (event) => {
         if (showOrderSuccess) {
             event.preventDefault();
@@ -496,7 +110,7 @@ export default function Home() {
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) {
-      const offset = 80; // height of sticky header
+      const offset = 80; 
       const bodyRect = document.body.getBoundingClientRect().top;
       const elementRect = element.getBoundingClientRect().top;
       const elementPosition = elementRect - bodyRect;
@@ -506,7 +120,6 @@ export default function Home() {
     setMobileMenuOpen(false);
   };
 
-  // --- NEW: HANDLE CHECKOUT & SUCCESS ---
   const handleInitiateCheckout = () => {
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
@@ -514,9 +127,8 @@ export default function Home() {
 
   const handleConfirmOrder = (method) => {
     setIsCheckoutOpen(false);
-    setLastOrderDetails({ method }); // Save detail for success modal
+    setLastOrderDetails({ method }); 
     setShowOrderSuccess(true);
-    // Note: Ideally, call clearCart() here from your Context if available
   };
 
   const handleContinueShopping = () => {
@@ -567,14 +179,14 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* --- CHECKOUT MODAL (NEW) --- */}
+      {/* --- CHECKOUT MODAL --- */}
       <AnimatePresence>
         {isCheckoutOpen && (
             <CheckoutModal 
                 cart={cart}
                 subtotal={cartTotal}
                 onClose={() => setIsCheckoutOpen(false)}
-                onConfirmOrder={handleConfirmOrder}
+                
             />
         )}
       </AnimatePresence>
@@ -702,8 +314,6 @@ export default function Home() {
       {/* --- NAVBAR --- */}
       <nav 
         className={`fixed w-full z-[300] top-0 transition-all duration-500 ${
-          // SIBLING LOGIC FIX: When menu is open, make navbar transparent to let overlay shine through, 
-          // but because z-index is higher, buttons remain visible on top.
           mobileMenuOpen 
             ? "bg-transparent py-4" 
             : isScrolled 
@@ -745,19 +355,18 @@ export default function Home() {
               )}
             </button>
             
-            {/* MOBILE TOGGLE (Increased Z-Index to stay above overlay) */}
+            {/* MOBILE TOGGLE */}
             <button 
               className="md:hidden text-white hover:text-[#D4AF37] transition-colors z-[302] relative p-2" 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {/* Added Gold color to X when menu is open so it's clearly visible against black overlay */}
               {mobileMenuOpen ? <X size={28} className="text-[#D4AF37]" /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </nav>
 
-      {/* --- MOBILE OVERLAY MENU (Moved outside Navbar for Perfect Positioning) --- */}
+      {/* --- MOBILE OVERLAY MENU --- */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div 

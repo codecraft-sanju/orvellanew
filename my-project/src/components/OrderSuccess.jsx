@@ -1,45 +1,81 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { CheckCircle, ArrowRight, LayoutDashboard } from 'lucide-react';
-import { useShop } from './ShopContext'; // Import Context to check user role
+import React from "react";
+import { motion } from "framer-motion";
 
-export default function OrderSuccess() {
-  const { user } = useShop(); 
-
+const OrderSuccessModal = ({ onClose, onContinueShopping, orderDetails }) => {
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 text-center selection:bg-[#D4AF37] selection:text-black">
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[120] flex items-center justify-center px-4"
+    >
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" onClick={onClose} />
+      
       <motion.div 
-        initial={{ scale: 0.8, opacity: 0 }} 
-        animate={{ scale: 1, opacity: 1 }} 
-        transition={{ duration: 0.5, type: "spring" }}
-        className="max-w-md w-full bg-[#121212] border border-[#D4AF37]/30 p-12 rounded-xl shadow-[0_0_60px_rgba(212,175,55,0.15)] relative overflow-hidden"
+        initial={{ scale: 0.5, opacity: 0, y: 50 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }} 
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", duration: 0.8, bounce: 0.3 }}
+        className="relative z-10 bg-[#0a0a0a] border border-[#D4AF37] w-full max-w-md rounded-lg p-10 text-center shadow-[0_0_100px_rgba(212,175,55,0.3)] overflow-hidden"
       >
-        {/* Top Gradient Line */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
-        
-        <div className="w-20 h-20 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-6 text-[#D4AF37] border border-[#D4AF37]/20 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
-            <CheckCircle size={40} />
-        </div>
-        
-        <h1 className="text-3xl font-serif text-white mb-2 tracking-wide">Order Confirmed</h1>
-        <p className="text-gray-400 mb-8 text-sm leading-relaxed">
-            Thank you for choosing Orvella. Your edition is being prepared by our artisans and will be shipped shortly.
-        </p>
+        <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,_transparent_0%,_#D4AF3710_25%,_transparent_50%,_#D4AF3710_75%,_transparent_100%)] animate-[spin_10s_linear_infinite] opacity-50" />
 
-        <div className="space-y-3">
-            {/* Show Admin Button only if the user is an Admin */}
-            {user && user.role === 'admin' && (
-                <Link to="/admin" className="block w-full bg-[#1a1a1a] text-gray-400 py-3 rounded border border-white/5 hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition-all uppercase text-xs font-bold tracking-widest flex items-center justify-center gap-2 group">
-                    <LayoutDashboard size={14} className="group-hover:scale-110 transition-transform"/> Track in Dashboard
-                </Link>
-            )}
-
-            <Link to="/" className="block w-full bg-[#D4AF37] text-black py-4 rounded font-bold hover:bg-white transition-colors uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2 shadow-[0_5px_20px_rgba(212,175,55,0.2)]">
-                Return to Orvella <ArrowRight size={14} />
-            </Link>
+        <div className="relative mb-8 flex justify-center items-center">
+            <motion.div 
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 0.2 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="absolute w-32 h-32 rounded-full bg-[#D4AF37] blur-xl"
+            />
+            
+            <svg width="120" height="120" viewBox="0 0 100 100" className="relative z-10">
+                <motion.circle 
+                    cx="50" cy="50" r="45" 
+                    fill="none" stroke="#D4AF37" strokeWidth="2"
+                    initial={{ pathLength: 0, rotate: -90, opacity: 0 }}
+                    animate={{ pathLength: 1, rotate: 0, opacity: 1 }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                />
+                <motion.path 
+                    d="M30 52 L43 65 L70 35" 
+                    fill="none" stroke="#D4AF37" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.4, type: "spring" }}
+                />
+            </svg>
         </div>
+
+        <motion.h2 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
+            className="text-3xl font-serif text-white mb-2 tracking-wide uppercase"
+        >
+            Order Placed
+        </motion.h2>
+        
+        <motion.p 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+            className="text-gray-400 text-sm mb-6 leading-relaxed font-light"
+        >
+            Your legacy has been secured. <br/>
+            Payment Mode: <span className="text-white font-bold">{orderDetails?.method === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</span>
+        </motion.p>
+
+        <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
+            className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 p-3 mb-8 rounded"
+        >
+             <p className="text-[#D4AF37] font-mono text-xs">ID: #ORV-{Math.floor(1000 + Math.random() * 9000)}</p>
+        </motion.div>
+
+        <motion.button 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }}
+            onClick={onContinueShopping} 
+            className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-sm shadow-[0_0_20px_rgba(212,175,55,0.4)]"
+        >
+            Continue Shopping
+        </motion.button>
       </motion.div>
-    </div>
+    </motion.div>
   );
-}
+};
+
+export default OrderSuccessModal;
