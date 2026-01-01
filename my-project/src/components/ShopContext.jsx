@@ -21,14 +21,21 @@ export const ShopProvider = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Load Products
         const { data: productData } = await axios.get(`${API_URL}/products`);
         setProducts(productData.products);
+
+        // Load User Profile
         try {
             const { data: userData } = await axios.get(`${API_URL}/me`, { withCredentials: true });
             setUser(userData.user);
         } catch (authError) { setUser(null); }
-      } catch (error) { console.error("Error loading data:", error); } 
-      finally { setLoading(false); }
+
+      } catch (error) { 
+        console.error("Error loading data:", error); 
+      } finally { 
+        setLoading(false); 
+      }
     };
     loadData();
   }, []);
@@ -57,31 +64,19 @@ export const ShopProvider = ({ children }) => {
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
   const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  // --- 🔥 PAYMENT & ORDER LOGIC STARTS HERE ---
-
-  // 1. Helper to Load Razorpay Script
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-        const script = document.createElement("script");
-        script.src = "https://checkout.razorpay.com/v1/checkout.js";
-        script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
-        document.body.appendChild(script);
-    });
-  };
-
-  // 2. Main Order Function (Called from Checkout.jsx)
-  // 🔥 Updated: Accepts 'shippingDetails' from form
-  const processOrder = async (paymentMethod, shippingDetails, navigate) => {
+  // --- 🔥 ORDER PROCESSING LOGIC (Manual UPI & COD) ---
+  
+  const processOrder = async (paymentDetails, shippingDetails, navigate) => {
     if (!user) {
         showNotification("Please login to place an order");
         navigate("/auth");
         return;
     }
 
-    // Use the real address from the form
+    const { method, txnId } = paymentDetails;
     const shippingInfo = shippingDetails;
 
+    // 1. Prepare Order Items
     const orderItems = cart.map(item => ({
         name: item.name,
         price: item.price,
@@ -90,102 +85,55 @@ export const ShopProvider = ({ children }) => {
         product: item._id
     }));
 
+    // 2. Calculate Costs
     const itemsPrice = cartTotal;
-    const taxPrice = itemsPrice * 0.18; 
+    const taxPrice = itemsPrice * 0.18; // 18% Tax Example
     const shippingPrice = itemsPrice > 5000 ? 0 : 200;
-    const COD_FEE = paymentMethod === 'cod' ? 50 : 0; 
+    const COD_FEE = method === 'cod' ? 50 : 0;
     const totalPrice = itemsPrice + taxPrice + shippingPrice + COD_FEE;
 
     const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
 
-    // --- CASE 1: CASH ON DELIVERY ---
-    if (paymentMethod === 'cod') {
-        try {
-            const orderData = {
-                shippingInfo, // Real Address
-                orderItems, itemsPrice, taxPrice, shippingPrice, totalPrice,
-                paymentInfo: { id: "cod", status: "pending" }
+    try {
+        // 3. Prepare Payment Info
+        let paymentInfo = {};
+
+        if (method === 'cod') {
+            paymentInfo = { 
+                id: "cod", 
+                status: "pending" // Cash pending
             };
-            
-            await axios.post(`${API_URL}/order/new`, orderData, config);
-            
-            // Success
-            setCart([]);
-            setIsCartOpen(false);
-            setShowOrderSuccess(true);
-            navigate("/");
-        } catch (error) {
-            showNotification(error.response?.data?.message || "COD Order Failed");
-        }
-    } 
-    
-    // --- CASE 2: ONLINE PAYMENT (RAZORPAY) ---
-    else {
-        try {
-            const res = await loadRazorpayScript();
-            if (!res) {
-                showNotification("Razorpay SDK failed to load. Are you online?");
-                return;
-            }
-
-            // A. Create Order on Server (Get Order ID)
-            const paymentData = { amount: Math.round(totalPrice * 100) }; 
-            
-            const { data: orderData } = await axios.post(`${API_URL}/payment/process`, paymentData, config);
-
-            // B. Get Key ID
-            const { data: keyData } = await axios.get(`${API_URL}/payment/razorpaykey`, config);
-
-            // C. Open Razorpay Popup
-            const options = {
-                key: keyData.razorpayApiKey,
-                amount: orderData.amount,
-                currency: "INR",
-                name: "ORVELLA",
-                description: "Luxury Fragrance Purchase",
-                image: "/orvella.jpeg", 
-                order_id: orderData.order_id, 
-                
-                // D. Handler: Jab payment successful ho jaye
-                handler: async function (response) {
-                    try {
-                        const finalOrderData = {
-                            shippingInfo, // Real Address
-                            orderItems, itemsPrice, taxPrice, shippingPrice, totalPrice,
-                            paymentInfo: {
-                                id: response.razorpay_payment_id,
-                                status: "succeeded"
-                            }
-                        };
-
-                        // E. Final Save to Database
-                        await axios.post(`${API_URL}/order/new`, finalOrderData, config);
-
-                        setCart([]);
-                        setIsCartOpen(false);
-                        setShowOrderSuccess(true);
-                        navigate("/");
-                    } catch (error) {
-                        showNotification("Payment successful but order creation failed. Contact support.");
-                    }
-                },
-                prefill: {
-                    name: user.name,
-                    email: user.email,
-                    contact: shippingInfo.phoneNo // 🔥 Use phone from form
-                },
-                theme: {
-                    color: "#D4AF37"
-                }
+        } else {
+            // MANUAL UPI LOGIC
+            paymentInfo = { 
+                id: txnId || "manual_upi_missing", // User ka UTR
+                status: "processing" // Hum ise 'processing' rakhenge taaki Admin Panel me verify karein
             };
-
-            const rzp1 = new window.Razorpay(options);
-            rzp1.open();
-
-        } catch (error) {
-            console.error(error);
-            showNotification("Online Payment Initialization Failed");
         }
+
+        // 4. Final Order Data Structure
+        const orderData = {
+            shippingInfo,
+            orderItems,
+            itemsPrice,
+            taxPrice,
+            shippingPrice,
+            totalPrice,
+            paymentInfo // Pass the Manual Info
+        };
+        
+        // 5. Send to Backend (No Razorpay call needed now)
+        await axios.post(`${API_URL}/order/new`, orderData, config);
+        
+        // 6. Success Handling
+        setCart([]); // Clear Cart
+        setIsCartOpen(false); // Close Drawer
+        setShowOrderSuccess(true); // Show Success Modal
+        navigate("/"); // Go Home
+
+    } catch (error) {
+        console.error("Order Failed:", error);
+        showNotification(error.response?.data?.message || "Order Creation Failed");
     }
   };
 
@@ -211,7 +159,7 @@ export const ShopProvider = ({ children }) => {
         products, loading, cart, isCartOpen, setIsCartOpen,
         addToCart, removeFromCart, updateQty, cartTotal, cartCount,
         notification, showNotification, user, logout, manualLogin,
-        processOrder, // <-- UPDATED FUNCTION NAME
+        processOrder, // <-- UPDATED FUNCTION
         showOrderSuccess, setShowOrderSuccess
       }}
     >
