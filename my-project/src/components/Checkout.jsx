@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, QrCode, Banknote, ArrowRight, MapPin, Phone, Copy, Check } from "lucide-react";
 import { useShop } from "./ShopContext"; 
@@ -8,9 +8,10 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
   const { processOrder, user } = useShop(); 
   const navigate = useNavigate();
 
-  // --- CONFIG ---
+  // --- CONFIG (Dynamic Values) ---
   const UPI_ID = "9520615500@ibl"; 
-  const COD_FEE = 50;
+  const SHIPPING_COST = 0; // Future me agar shipping charge lagana ho to yaha change karna
+  const COD_FEE = 50;      // COD ka extra charge
 
   // --- STATE ---
   const [step, setStep] = useState(1); 
@@ -24,7 +25,14 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const finalTotal = paymentMethod === 'cod' ? subtotal + COD_FEE : subtotal;
+  // --- DYNAMIC TOTAL CALCULATION ---
+  // Ensure subtotal is a number
+  const numericSubtotal = Number(subtotal) || 0;
+  
+  // Calculate Final Total based on Payment Method
+  const finalTotal = paymentMethod === 'cod' 
+    ? numericSubtotal + SHIPPING_COST + COD_FEE 
+    : numericSubtotal + SHIPPING_COST;
 
   // --- HANDLERS ---
   const handleInputChange = (e) => {
@@ -66,9 +74,12 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
     const paymentDetails = {
         method: paymentMethod,
         txnId: paymentMethod === 'upi_manual' ? transactionId : 'COD',
+        amount: finalTotal, // Backend ko final amount bhejna zaruri hai
+        isCodFeeApplied: paymentMethod === 'cod'
     };
 
     await processOrder(paymentDetails, shippingInfo, navigate);
+    // Note: Timeout hata diya hai kyunki processOrder successful hone par modal waise bhi band ho jayega ya redirect hoga
     setTimeout(() => { setIsProcessing(false); }, 2000);
   };
 
@@ -145,20 +156,56 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
                     {step === 2 && (
                         <div className="flex flex-col md:flex-row gap-8">
                             
-                            {/* Left: Summary */}
+                            {/* Left: Dynamic Bill Summary */}
                             <div className="md:w-5/12 space-y-4 order-2 md:order-1">
                                 <div className="bg-[#121212] p-5 rounded-xl border border-white/5">
                                     <h4 className="text-gray-500 text-xs uppercase tracking-widest mb-3 font-bold">Bill Summary</h4>
                                     <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between text-gray-400"><span>Subtotal</span><span>₹{subtotal.toLocaleString()}</span></div>
-                                        <div className="flex justify-between text-gray-400"><span>Shipping</span><span className="text-green-500">FREE</span></div>
-                                        {paymentMethod === 'cod' && <div className="flex justify-between text-[#D4AF37]"><span>COD Fee</span><span>+₹{COD_FEE}</span></div>}
-                                        <div className="border-t border-white/10 pt-2 mt-2 flex justify-between text-white font-bold text-lg">
-                                            <span>Total</span><span>₹{finalTotal.toLocaleString()}</span>
+                                        {/* Subtotal */}
+                                        <div className="flex justify-between text-gray-400">
+                                            <span>Subtotal</span>
+                                            <span>₹{numericSubtotal.toLocaleString()}</span>
+                                        </div>
+                                        
+                                        {/* Shipping (Dynamic) */}
+                                        <div className="flex justify-between text-gray-400">
+                                            <span>Shipping</span>
+                                            <span className={SHIPPING_COST === 0 ? "text-green-500" : "text-white"}>
+                                                {SHIPPING_COST === 0 ? "FREE" : `₹${SHIPPING_COST}`}
+                                            </span>
+                                        </div>
+
+                                        {/* COD Fee Logic */}
+                                        <AnimatePresence>
+                                            {paymentMethod === 'cod' && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, height: 0 }} 
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="flex justify-between text-[#D4AF37] overflow-hidden"
+                                                >
+                                                    <span>COD Handling Fee</span>
+                                                    <span>+₹{COD_FEE}</span>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+
+                                        {/* Final Total */}
+                                        <div className="border-t border-white/10 pt-3 mt-2 flex justify-between text-white font-bold text-lg">
+                                            <span>Total Amount</span>
+                                            <motion.span 
+                                                key={finalTotal} // Key change triggers animation
+                                                initial={{ scale: 1.1 }} 
+                                                animate={{ scale: 1 }}
+                                                className="text-[#D4AF37]"
+                                            >
+                                                ₹{finalTotal.toLocaleString()}
+                                            </motion.span>
                                         </div>
                                     </div>
                                 </div>
 
+                                {/* Address Preview */}
                                 <div className="bg-[#121212] p-4 rounded-xl border border-white/5 text-sm">
                                     <div className="flex justify-between items-start">
                                         <div>
@@ -188,10 +235,9 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
 
                                         {paymentMethod === 'upi_manual' && (
                                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pl-0 md:pl-7 overflow-hidden">
-                                                {/* 🔥 IMPROVED QR SECTION */}
                                                 <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-6 flex flex-col items-center justify-center text-center mb-4">
                                                     
-                                                    {/* QR IMAGE (Large & Clear) */}
+                                                    {/* QR IMAGE */}
                                                     <div className="bg-white p-3 rounded-xl shadow-[0_0_25px_rgba(255,255,255,0.1)] mb-4">
                                                         <img src="/qr-code.jpeg" alt="Scan QR" className="w-48 h-48 md:w-56 md:h-56 object-contain" />
                                                     </div>
@@ -243,7 +289,9 @@ const CheckoutModal = ({ cart, subtotal, onClose }) => {
                                 {error && <p className="text-red-500 text-xs mt-4 text-center animate-pulse">{error}</p>}
 
                                 <button onClick={handlePlaceOrder} className="mt-6 w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all rounded-lg shadow-lg shadow-[#D4AF37]/20">
-                                    {paymentMethod === 'upi_manual' ? `Confirm Payment` : `Place Order`}
+                                    {paymentMethod === 'upi_manual' 
+                                        ? `Pay ₹${finalTotal.toLocaleString()}` 
+                                        : `Place Order - ₹${finalTotal.toLocaleString()}`}
                                 </button>
                             </div>
                         </div>
