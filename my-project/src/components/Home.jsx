@@ -10,7 +10,7 @@ import {
 import { useShop } from "./ShopContext"; 
 import CheckoutModal from "./Checkout";           
 import OrderSuccessModal from "./OrderSuccess";  
-import {                                                              
+import {                                                      
   NoiseOverlay, CustomCursor, AnimatedTitle, 
   RevealOnScroll, TiltCard 
 } from "./MotionComponents";
@@ -123,9 +123,14 @@ export default function Home() {
     setIsCheckoutOpen(true);
   };
 
+
   const handleConfirmOrder = (method) => {
-    setLastOrderDetails({ method: method }); 
+   setLastOrderDetails({ method: method }); 
+    
+    
     setIsCheckoutOpen(false); 
+    
+    
     setShowOrderSuccess(true);   
   };
 
@@ -183,6 +188,7 @@ export default function Home() {
                 cart={cart}
                 subtotal={cartTotal}
                 onClose={() => setIsCheckoutOpen(false)}
+                // 👇 Yaha hum wo function pass kar rahe hain
                 onOrderSuccess={handleConfirmOrder}
             />
         )}
@@ -333,9 +339,9 @@ export default function Home() {
              {user ? (
                <div className="hidden md:flex items-center gap-6">
                  {user.role === 'admin' ? (
-                   <Link to="/admin" className="text-[#D4AF37] text-xs font-bold tracking-wider border border-[#D4AF37] px-4 py-2 hover:bg-[#D4AF37] hover:text-black transition-all">ADMIN</Link>
+                    <Link to="/admin" className="text-[#D4AF37] text-xs font-bold tracking-wider border border-[#D4AF37] px-4 py-2 hover:bg-[#D4AF37] hover:text-black transition-all">ADMIN</Link>
                  ) : (
-                   <span className="text-white text-xs tracking-widest">HI, {user.name.split(' ')[0].toUpperCase()}</span>
+                    <span className="text-white text-xs tracking-widest">HI, {user.name.split(' ')[0].toUpperCase()}</span>
                  )}
                  <button onClick={logout} className="text-gray-500 hover:text-red-500 transition-colors"><LogOut size={18} /></button>
                </div>
@@ -626,7 +632,7 @@ export default function Home() {
             <div className="border-t border-white/5 pt-10 flex flex-col md:flex-row justify-between items-center text-xs text-gray-700 font-mono">
                 <p>&copy; 2026 Orvella. All Rights Reserved.</p>
                 <div className="flex gap-8 mt-4 md:mt-0">
-                    <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                   <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
     <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
     <Link to="/refund" className="hover:text-white transition-colors">Refunds</Link>
     <Link to="/admin" className="hover:text-[#D4AF37] transition-colors">Admin</Link>
