@@ -629,9 +629,10 @@ export default function Home() {
             <div className="border-t border-white/5 pt-10 flex flex-col md:flex-row justify-between items-center text-xs text-gray-700 font-mono">
                 <p>&copy; 2026 Orvella. All Rights Reserved.</p>
                 <div className="flex gap-8 mt-4 md:mt-0">
-                    <Link to="#" className="hover:text-white transition-colors">Privacy</Link>
-                    <Link to="#" className="hover:text-white transition-colors">Terms</Link>
-                    <Link to="/admin" className="hover:text-[#D4AF37] transition-colors">Admin</Link>
+                   <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+    <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+    <Link to="/refund" className="hover:text-white transition-colors">Refunds</Link>
+    <Link to="/admin" className="hover:text-[#D4AF37] transition-colors">Admin</Link>
                 </div>
             </div>
         </div>
