@@ -20,7 +20,7 @@ exports.processPayment = async (req, res, next) => {
     });
 
     const options = {
-      amount: req.body.amount, // Amount paise me
+      amount: req.body.amount, 
       currency: "INR",
       receipt: "receipt_" + Date.now(),
     };
