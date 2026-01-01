@@ -4,18 +4,14 @@ import { X, Loader2, QrCode, Banknote, ArrowRight, MapPin, Phone, Copy, Check } 
 import { useShop } from "./ShopContext"; 
 import { useNavigate } from "react-router-dom";
 
-// Note: Ensure Home.jsx passes 'onOrderSuccess' prop to this component
 const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
   const { processOrder, user } = useShop(); 
   const navigate = useNavigate();
 
-  // --- CONFIG (Dynamic Values) ---
+  // --- CONFIG ---
   const UPI_ID = "9520615500@ibl"; 
-  
-  // 👇 CHANGE: Shipping cost updated to 60 (applied to both COD and Online)
-  const SHIPPING_COST = 60; 
-  
-  const COD_FEE = 50;       // COD ka extra charge
+  const SHIPPING_COST = 60; // Fixed Shipping
+  const COD_FEE = 50;       // Fixed COD Fee
 
   // --- STATE ---
   const [step, setStep] = useState(1); 
@@ -30,11 +26,9 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
   const [copied, setCopied] = useState(false);
 
   // --- DYNAMIC TOTAL CALCULATION ---
-  // Ensure subtotal is a number
   const numericSubtotal = Number(subtotal) || 0;
   
-  // Calculate Final Total based on Payment Method
-  // Logic: Shipping (60) is always added. If COD, add extra 50.
+  // Logic: Subtotal + Shipping (60) + COD Fee (if applicable) -> NO TAX
   const finalTotal = paymentMethod === 'cod' 
     ? numericSubtotal + SHIPPING_COST + COD_FEE 
     : numericSubtotal + SHIPPING_COST;
@@ -76,22 +70,21 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
         phoneNo: formData.phoneNo,
     };
 
+    // 🔥 PACKING DATA CORRECTLY FOR CONTEXT
     const paymentDetails = {
         method: paymentMethod,
         txnId: paymentMethod === 'upi_manual' ? transactionId : 'COD',
-        amount: finalTotal, // Backend ko final amount bhejna zaruri hai
-        isCodFeeApplied: paymentMethod === 'cod',
-        shippingCost: SHIPPING_COST // Backend record keeping ke liye useful
+        amount: finalTotal, // Yeh User wala total hai (No Tax)
+        shippingCost: SHIPPING_COST,
+        isCodFeeApplied: paymentMethod === 'cod'
     };
 
     // Backend process call
     await processOrder(paymentDetails, shippingInfo, navigate);
     
-    // Success handling with Timeout for UX
+    // Timeout for UX smoothness
     setTimeout(() => { 
         setIsProcessing(false); 
-        
-        // 🔥 IMPORTANT FIX: Call the parent handler with the method used
         if (onOrderSuccess) {
             onOrderSuccess(paymentMethod);
         }
@@ -117,7 +110,7 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
             <button onClick={onClose} className="text-gray-500 hover:text-white p-2"><X size={20}/></button>
         </div>
 
-        {/* CONTENT AREA (Scrollable) */}
+        {/* CONTENT AREA */}
         <div className="overflow-y-auto p-6 md:p-8 custom-scrollbar">
             {isProcessing ? (
                  <div className="h-[300px] flex flex-col items-center justify-center text-center">
@@ -129,7 +122,7 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
                  </div>
             ) : (
                 <>
-                    {/* --- STEP 1: ADDRESS FORM --- */}
+                    {/* --- STEP 1: ADDRESS --- */}
                     {step === 1 && (
                         <div className="space-y-5">
                             <div className="space-y-4">

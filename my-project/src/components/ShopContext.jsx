@@ -21,11 +21,9 @@ export const ShopProvider = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load Products
         const { data: productData } = await axios.get(`${API_URL}/products`);
         setProducts(productData.products);
 
-        // Load User Profile
         try {
             const { data: userData } = await axios.get(`${API_URL}/me`, { withCredentials: true });
             setUser(userData.user);
@@ -64,7 +62,7 @@ export const ShopProvider = ({ children }) => {
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
   const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  // --- 🔥 ORDER PROCESSING LOGIC (Manual UPI & COD) ---
+  // --- 🔥 ORDER PROCESSING LOGIC (FIXED: NO TAX, MATCHING TOTAL) ---
   
   const processOrder = async (paymentDetails, shippingDetails, navigate) => {
     if (!user) {
@@ -73,7 +71,8 @@ export const ShopProvider = ({ children }) => {
         return;
     }
 
-    const { method, txnId } = paymentDetails;
+    // 👇 Checkout.jsx se aaya hua exact data receive karo
+    const { method, txnId, amount, shippingCost } = paymentDetails;
     const shippingInfo = shippingDetails;
 
     // 1. Prepare Order Items
@@ -85,12 +84,11 @@ export const ShopProvider = ({ children }) => {
         product: item._id
     }));
 
-    // 2. Calculate Costs
+    // 2. Costs (Calculation Hataya - Direct Mapping)
     const itemsPrice = cartTotal;
-    const taxPrice = itemsPrice * 0.18; // 18% Tax Example
-    const shippingPrice = itemsPrice > 5000 ? 0 : 200;
-    const COD_FEE = method === 'cod' ? 50 : 0;
-    const totalPrice = itemsPrice + taxPrice + shippingPrice + COD_FEE;
+    const taxPrice = 0; // 🔥 TAX AB 0 HAI
+    const shippingPrice = shippingCost; // Checkout se aaya hua 60
+    const totalPrice = amount; // 🔥 Jo user ne pay kiya, wahi final price
 
     const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
 
@@ -101,13 +99,13 @@ export const ShopProvider = ({ children }) => {
         if (method === 'cod') {
             paymentInfo = { 
                 id: "cod", 
-                status: "pending" // Cash pending
+                status: "pending" 
             };
         } else {
             // MANUAL UPI LOGIC
             paymentInfo = { 
-                id: txnId || "manual_upi_missing", // User ka UTR
-                status: "processing" // Hum ise 'processing' rakhenge taaki Admin Panel me verify karein
+                id: txnId || "manual_upi_missing", 
+                status: "processing" 
             };
         }
 
@@ -116,20 +114,20 @@ export const ShopProvider = ({ children }) => {
             shippingInfo,
             orderItems,
             itemsPrice,
-            taxPrice,
-            shippingPrice,
-            totalPrice,
-            paymentInfo // Pass the Manual Info
+            taxPrice,      // 0 Bhej rahe hain
+            shippingPrice, // 60 Bhej rahe hain
+            totalPrice,    // Correct Total
+            paymentInfo 
         };
         
-        // 5. Send to Backend (No Razorpay call needed now)
+        // 5. Send to Backend
         await axios.post(`${API_URL}/order/new`, orderData, config);
         
         // 6. Success Handling
-        setCart([]); // Clear Cart
-        setIsCartOpen(false); // Close Drawer
-        setShowOrderSuccess(true); // Show Success Modal
-        navigate("/"); // Go Home
+        setCart([]); 
+        setIsCartOpen(false); 
+        setShowOrderSuccess(true); 
+        navigate("/"); 
 
     } catch (error) {
         console.error("Order Failed:", error);
@@ -137,7 +135,6 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
-  // --- AUTH ACTIONS ---
   const logout = async () => {
       try {
           await axios.get(`${API_URL}/logout`, { withCredentials: true });
@@ -159,7 +156,7 @@ export const ShopProvider = ({ children }) => {
         products, loading, cart, isCartOpen, setIsCartOpen,
         addToCart, removeFromCart, updateQty, cartTotal, cartCount,
         notification, showNotification, user, logout, manualLogin,
-        processOrder, // <-- UPDATED FUNCTION
+        processOrder,
         showOrderSuccess, setShowOrderSuccess
       }}
     >
