@@ -130,11 +130,14 @@ export default function Home() {
   };
 
   const handleContinueShopping = () => {
+    // 1. Modal band karo
     setShowOrderSuccess(false);
+
+    // 2. Purane order ka data clear karo
     setLastOrderDetails(null);
-    setTimeout(() => {
-        scrollToSection('details');
-    }, 300);
+
+    // 3. Seedha page ke top par scroll karo (Home Page)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // --- LOADING SCREEN ---

@@ -1,8 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle, PackageCheck } from "lucide-react";
 
-const OrderSuccessModal = ({ onClose, onContinueShopping, orderDetails }) => {
+const OrderSuccess= ({ onClose, onContinueShopping, orderDetails }) => {
+  // Check payment method
+  const isCOD = orderDetails?.method === 'cod';
   const isManualPayment = orderDetails?.method === 'upi_manual';
 
   return (
@@ -22,79 +24,83 @@ const OrderSuccessModal = ({ onClose, onContinueShopping, orderDetails }) => {
         {/* Rotating Background Effect */}
         <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,_transparent_0%,_#D4AF3710_25%,_transparent_50%,_#D4AF3710_75%,_transparent_100%)] animate-[spin_10s_linear_infinite] opacity-50" />
 
-        {/* Animated Check Icon */}
+        {/* --- DYNAMIC ICON & TITLE --- */}
         <div className="relative mb-6 flex justify-center items-center">
             <motion.div 
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 0.2 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
                 className="absolute w-32 h-32 rounded-full bg-[#D4AF37] blur-xl"
             />
             
-            <svg width="120" height="120" viewBox="0 0 100 100" className="relative z-10">
-                <motion.circle 
-                    cx="50" cy="50" r="45" 
-                    fill="none" stroke="#D4AF37" strokeWidth="2"
-                    initial={{ pathLength: 0, rotate: -90, opacity: 0 }}
-                    animate={{ pathLength: 1, rotate: 0, opacity: 1 }}
-                    transition={{ duration: 0.8, ease: "easeInOut" }}
-                />
-                <motion.path 
-                    d="M30 52 L43 65 L70 35" 
-                    fill="none" stroke="#D4AF37" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 0.4, type: "spring" }}
-                />
-            </svg>
+            {/* Show Checkmark for COD, Clock/Alert for Manual Payment */}
+            {isCOD ? (
+                 <motion.div
+                    initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", duration: 1 }}
+                 >
+                    <PackageCheck size={80} className="text-[#D4AF37] relative z-10" />
+                 </motion.div>
+            ) : (
+                <motion.div
+                    initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", duration: 1 }}
+                 >
+                    <Clock size={80} className="text-[#D4AF37] relative z-10" />
+                 </motion.div>
+            )}
         </div>
 
         <motion.h2 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
             className="text-3xl font-serif text-white mb-2 tracking-wide uppercase"
         >
-            Order Placed
+            {isCOD ? "Order Confirmed" : "Verification Pending"}
         </motion.h2>
         
+        {/* --- DYNAMIC DESCRIPTION --- */}
         <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
             className="text-gray-400 text-sm mb-6 leading-relaxed font-light"
         >
-            Your legacy has been secured. <br/>
-            Payment Mode: <span className="text-white font-bold uppercase">{isManualPayment ? 'Online (Verification Pending)' : 'Cash on Delivery'}</span>
+            {isCOD ? (
+                <>
+                    Your request has been received securely.<br />
+                    <span className="text-[#D4AF37] font-bold mt-2 block">CASH ON DELIVERY</span>
+                    <p className="mt-2 text-xs text-gray-500">Please ensure you have the cash amount ready upon arrival.</p>
+                </>
+            ) : (
+                <>
+                    Your transaction ID is being processed.<br />
+                    Payment Mode: <span className="text-white font-bold uppercase">UPI (Manual)</span>
+                </>
+            )}
             
-            {/* 🔥 IMPORTANT DISCLAIMER FOR MANUAL UPI */}
+            {/* --- WARNING BOX FOR UPI ONLY --- */}
             {isManualPayment && (
-                <div className="mt-4 mx-auto bg-[#1a1a1a] border border-[#D4AF37]/40 p-4 rounded text-xs text-left shadow-lg">
+                <div className="mt-6 mx-auto bg-[#1a1a1a] border border-red-500/30 p-4 rounded text-xs text-left shadow-lg relative overflow-hidden group">
+                    <div className="absolute left-0 top-0 h-full w-1 bg-[#D4AF37]" />
                     <div className="flex items-center gap-2 mb-2 text-[#D4AF37] font-bold uppercase tracking-wider">
-                        <AlertTriangle size={14} /> Important Note
+                        <AlertTriangle size={14} className="animate-pulse" /> Verification Required
                     </div>
                     <p className="text-gray-300 leading-5">
-                        Your order is currently under <b>Verification</b>. It will be confirmed and processed <b>only if the Transaction ID matches</b> our records.
+                        Your order will be <b>Cancelled Automatically</b> if the provided Transaction ID is incorrect or fake.
                     </p>
-                    <p className="text-red-400 mt-2 italic">
-                        *Invalid or fake transaction IDs will lead to automatic order cancellation.
+                    <p className="text-gray-500 mt-2 italic border-t border-white/5 pt-2">
+                        Admin will verify the amount before processing.
                     </p>
                 </div>
             )}
-
-            {/* MESSAGE FOR COD */}
-            {orderDetails?.method === 'cod' && (
-                <p className="mt-4 text-xs text-gray-500 bg-white/5 p-2 rounded border border-white/10">
-                    Please ensure cash availability at the time of delivery.
-                </p>
-            )}
         </motion.div>
 
+        {/* --- ORDER ID --- */}
         <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
             className="bg-[#D4AF37]/5 border border-[#D4AF37]/20 p-2 mb-8 rounded inline-block px-6"
         >
              <p className="text-[#D4AF37] font-mono text-xs tracking-widest">ORDER ID: #ORV-{Math.floor(1000 + Math.random() * 9000)}</p>
         </motion.div>
 
+        {/* --- ACTION BUTTON --- */}
         <motion.button 
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }}
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
             onClick={onContinueShopping} 
             className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-sm shadow-[0_0_20px_rgba(212,175,55,0.4)]"
         >
@@ -105,4 +111,4 @@ const OrderSuccessModal = ({ onClose, onContinueShopping, orderDetails }) => {
   );
 };
 
-export default OrderSuccessModal;
+export default OrderSuccess;
