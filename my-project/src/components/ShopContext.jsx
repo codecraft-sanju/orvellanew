@@ -71,22 +71,16 @@ export const ShopProvider = ({ children }) => {
   };
 
   // 2. Main Order Function (Called from Checkout.jsx)
-  const processOrder = async (paymentMethod, navigate) => {
+  // 🔥 Updated: Accepts 'shippingDetails' from form
+  const processOrder = async (paymentMethod, shippingDetails, navigate) => {
     if (!user) {
         showNotification("Please login to place an order");
         navigate("/auth");
         return;
     }
 
-    // Dummy Address (Kyunki Checkout form me address input nahi tha, baad me form add karlena)
-    const shippingInfo = {
-        address: "123 Luxury Lane",
-        city: "Mumbai",
-        state: "Maharashtra",
-        country: "India",
-        pinCode: 400001,
-        phoneNo: 9876543210
-    };
+    // Use the real address from the form
+    const shippingInfo = shippingDetails;
 
     const orderItems = cart.map(item => ({
         name: item.name,
@@ -99,7 +93,7 @@ export const ShopProvider = ({ children }) => {
     const itemsPrice = cartTotal;
     const taxPrice = itemsPrice * 0.18; 
     const shippingPrice = itemsPrice > 5000 ? 0 : 200;
-    const COD_FEE = paymentMethod === 'cod' ? 50 : 0; // Backend me add nahi kiya tha, toh frontend logic handle karega
+    const COD_FEE = paymentMethod === 'cod' ? 50 : 0; 
     const totalPrice = itemsPrice + taxPrice + shippingPrice + COD_FEE;
 
     const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
@@ -108,7 +102,8 @@ export const ShopProvider = ({ children }) => {
     if (paymentMethod === 'cod') {
         try {
             const orderData = {
-                shippingInfo, orderItems, itemsPrice, taxPrice, shippingPrice, totalPrice,
+                shippingInfo, // Real Address
+                orderItems, itemsPrice, taxPrice, shippingPrice, totalPrice,
                 paymentInfo: { id: "cod", status: "pending" }
             };
             
@@ -134,7 +129,6 @@ export const ShopProvider = ({ children }) => {
             }
 
             // A. Create Order on Server (Get Order ID)
-            // Razorpay amount paise me leta hai (multiply by 100)
             const paymentData = { amount: Math.round(totalPrice * 100) }; 
             
             const { data: orderData } = await axios.post(`${API_URL}/payment/process`, paymentData, config);
@@ -149,14 +143,15 @@ export const ShopProvider = ({ children }) => {
                 currency: "INR",
                 name: "ORVELLA",
                 description: "Luxury Fragrance Purchase",
-                image: "/orvella.jpeg", // Logo path
-                order_id: orderData.order_id, // Ye backend se aaya hua ID hai
+                image: "/orvella.jpeg", 
+                order_id: orderData.order_id, 
                 
                 // D. Handler: Jab payment successful ho jaye
                 handler: async function (response) {
                     try {
                         const finalOrderData = {
-                            shippingInfo, orderItems, itemsPrice, taxPrice, shippingPrice, totalPrice,
+                            shippingInfo, // Real Address
+                            orderItems, itemsPrice, taxPrice, shippingPrice, totalPrice,
                             paymentInfo: {
                                 id: response.razorpay_payment_id,
                                 status: "succeeded"
@@ -177,7 +172,7 @@ export const ShopProvider = ({ children }) => {
                 prefill: {
                     name: user.name,
                     email: user.email,
-                    contact: "9999999999" // User phone
+                    contact: shippingInfo.phoneNo // 🔥 Use phone from form
                 },
                 theme: {
                     color: "#D4AF37"

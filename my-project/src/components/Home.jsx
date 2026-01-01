@@ -8,16 +8,14 @@ import {
 
 // --- IMPORTS ---
 import { useShop } from "./ShopContext"; 
-import CheckoutModal from "./Checkout";          // <-- IMPORTED
-import OrderSuccessModal from "./OrderSuccess";  // <-- IMPORTED
-import {                                              // <-- IMPORTED
+import CheckoutModal from "./Checkout";          
+import OrderSuccessModal from "./OrderSuccess";  
+import {                                              
   NoiseOverlay, CustomCursor, AnimatedTitle, 
   RevealOnScroll, TiltCard 
 } from "./MotionComponents";
 
-// ==========================================
-// MAIN PAGE COMPONENT
-// ==========================================
+
 export default function Home() {
   const { 
     products, addToCart, cart, isCartOpen, setIsCartOpen, 
