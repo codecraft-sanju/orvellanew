@@ -3,14 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, useTransform, useScroll, AnimatePresence } from "framer-motion";
 import { 
   ShoppingBag, Menu, X, Star, ShieldCheck, Truck, 
-  Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight 
+  Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight,
+  Timer // Added Timer Icon
 } from "lucide-react";
 
 // --- IMPORTS ---
 import { useShop } from "./ShopContext"; 
 import CheckoutModal from "./Checkout";           
 import OrderSuccessModal from "./OrderSuccess";  
-import {                                                          
+import {                                          
   NoiseOverlay, CustomCursor, AnimatedTitle, 
   RevealOnScroll, TiltCard 
 } from "./MotionComponents";
@@ -32,6 +33,9 @@ export default function Home() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [lastOrderDetails, setLastOrderDetails] = useState(null);
 
+  // --- STATE FOR OFFER TIMER ---
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
   const navigate = useNavigate();
   const { scrollY } = useScroll();
   
@@ -43,6 +47,34 @@ export default function Home() {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // --- TIMER LOGIC (Resets every 24 Hours / Midnight) ---
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      // Set target to next midnight
+      const target = new Date(now);
+      target.setHours(24, 0, 0, 0); 
+      
+      const difference = target - now;
+
+      if (difference > 0) {
+        setTimeLeft({
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        });
+      } else {
+        // Fallback just in case, though the loop handles it
+        setTimeLeft({ hours: 23, minutes: 59, seconds: 59 });
+      }
+    };
+
+    const timer = setInterval(calculateTimeLeft, 1000);
+    calculateTimeLeft(); // Run immediately
+
+    return () => clearInterval(timer);
   }, []);
 
   // Body Scroll Lock & Back Button Handling
@@ -94,6 +126,10 @@ export default function Home() {
 
   const heroProduct = products.length > 0 ? products[0] : DEFAULT_PRODUCT;
 
+  // --- PRICE LOGIC FOR OFFER ---
+  const originalPrice = heroProduct.price;
+  const offerPrice = originalPrice - 20;
+
   const handleBuy = (product) => {
     if (product._id === "orvella-golden-root-main") {
         alert("⚠️ SYSTEM NOTICE: DATABASE IS EMPTY\n\nAdmin ne abhi tak product database me add nahi kiya hai.");
@@ -127,11 +163,7 @@ export default function Home() {
 
   const handleConfirmOrder = (method) => {
    setLastOrderDetails({ method: method }); 
-   
-   
    setIsCheckoutOpen(false); 
-   
-   
    setShowOrderSuccess(true);   
   };
 
@@ -517,7 +549,6 @@ export default function Home() {
                     </RevealOnScroll>
                     
                     <RevealOnScroll delay={0.3}>
-                      {/* THIS IS THE UPDATED PART FOR LONG DESCRIPTION */}
                       <p className="text-gray-400 leading-loose text-lg whitespace-pre-line">
                           {heroProduct.longDescription || heroProduct.description}
                       </p>
@@ -558,33 +589,81 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- EXCLUSIVE OFFER --- */}
-      <section id="offer" className="relative py-40 bg-[#050505] overflow-hidden">
+      {/* --- EXCLUSIVE OFFER SECTION (UPDATED) --- */}
+      <section id="offer" className="relative py-32 bg-[#050505] overflow-hidden">
+        {/* Background Effects */}
         <div className="absolute inset-0 z-0">
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#D4AF37]/5 rounded-full blur-[150px]" />
+             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px]" />
+             <NoiseOverlay />
         </div>
         
-        <div className="max-w-5xl mx-auto px-6 relative z-10 text-center">
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
             <RevealOnScroll>
-              <div className="border border-[#D4AF37]/30 p-12 md:p-24 bg-[#050505]/60 backdrop-blur-md relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-[#D4AF37]/5 translate-y-full group-hover:translate-y-0 transition-transform duration-700 ease-in-out" />
+              <div className="grid md:grid-cols-2 bg-[#0a0a0a] border border-[#D4AF37]/20 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.05)]">
                   
-                  <span className="text-[#D4AF37] uppercase tracking-[0.4em] text-xs font-bold relative z-10">Limited Time Offer</span>
-                  
-                  <h2 className="mt-8 text-5xl md:text-7xl font-serif text-white leading-tight relative z-10">
-                      Your First <span className="text-[#D4AF37] italic">Luxury</span>
-                  </h2>
-                  
-                  <p className="mt-8 text-gray-400 max-w-lg mx-auto text-lg leading-relaxed relative z-10">
-                      Use code <span className="text-white font-bold border-b border-[#D4AF37] mx-1">ORVELLA20</span> at checkout for an exclusive 20% discount on your first purchase.
-                  </p>
-                  
-                  <button 
-                    onClick={() => handleBuy(heroProduct)} 
-                    className="mt-12 px-12 py-5 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-colors relative z-10"
-                  >
-                      Claim Offer
-                  </button>
+                  {/* Left: Product & Visuals */}
+                  <div className="relative p-10 flex items-center justify-center bg-gradient-to-br from-[#121212] to-[#050505]">
+                      <div className="absolute top-4 left-4 flex gap-2">
+                          <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full animate-pulse">
+                            Flash Sale
+                          </span>
+                      </div>
+                      <img 
+                          src={heroProduct.images[0].url} 
+                          className="w-[70%] drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] transform hover:scale-105 transition-transform duration-500"
+                          alt="Offer Product"
+                      />
+                  </div>
+
+                  {/* Right: Content & Timer */}
+                  <div className="p-10 md:p-16 flex flex-col justify-center border-l border-white/5 relative">
+                      <h3 className="text-[#D4AF37] text-sm font-bold uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                        <Timer size={16}/> Ends in
+                      </h3>
+                      
+                      {/* COUNTDOWN TIMER */}
+                      <div className="flex gap-4 mb-8">
+                          {['hours', 'minutes', 'seconds'].map((unit, i) => (
+                              <div key={i} className="flex flex-col items-center">
+                                  <div className="w-16 h-16 bg-[#1a1a1a] border border-[#D4AF37]/30 rounded-lg flex items-center justify-center text-2xl font-mono text-[#D4AF37] shadow-inner">
+                                      {String(timeLeft[unit]).padStart(2, '0')}
+                                  </div>
+                                  <span className="text-[10px] text-gray-500 uppercase mt-2 tracking-wider">{unit}</span>
+                              </div>
+                          ))}
+                      </div>
+
+                      <h2 className="text-4xl md:text-5xl font-serif text-white mb-4">
+                        Daily <span className="text-[#D4AF37] italic">Deal</span>
+                      </h2>
+                      
+                      <p className="text-gray-400 text-sm leading-relaxed mb-8 border-b border-white/10 pb-8">
+                        Get the signature Orvella scent at an exclusive daily price. Offer resets every 24 hours. Don't miss your chance to own luxury for less.
+                      </p>
+                      
+                      {/* PRICING */}
+                      <div className="flex items-end gap-4 mb-8">
+                          <div>
+                              <p className="text-xs text-gray-500 uppercase mb-1 line-through">Original Price</p>
+                              <p className="text-xl text-gray-500 line-through decoration-red-500/50">₹{originalPrice}</p>
+                          </div>
+                          <div>
+                              <p className="text-xs text-[#D4AF37] uppercase mb-1 font-bold">Offer Price</p>
+                              <p className="text-4xl text-white font-serif">₹{offerPrice}</p>
+                          </div>
+                      </div>
+
+                      <button 
+                        onClick={() => handleBuy(heroProduct)} 
+                        className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+                      >
+                          Claim Offer Now
+                      </button>
+                      
+                      <p className="text-[10px] text-gray-600 mt-4 text-center">
+                        *Offer resets automatically at midnight. Limited stock available.
+                      </p>
+                  </div>
               </div>
             </RevealOnScroll>
         </div>
