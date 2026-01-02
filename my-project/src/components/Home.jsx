@@ -638,7 +638,7 @@ export default function Home() {
                       </h2>
                       
                       <p className="text-gray-400 text-sm leading-relaxed mb-8 border-b border-white/10 pb-8">
-                        Get the signature Orvella scent at an exclusive daily price. Offer resets every 24 hours. Don't miss your chance to own luxury for less.
+                      This exclusive invitation expires when the clock strikes zero. Secure your signature scent at a privileged price before the window closes.
                       </p>
                       
                       {/* PRICING */}
