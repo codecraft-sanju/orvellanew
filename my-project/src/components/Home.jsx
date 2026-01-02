@@ -11,7 +11,7 @@ import {
 import { useShop } from "./ShopContext"; 
 import CheckoutModal from "./Checkout";           
 import OrderSuccessModal from "./OrderSuccess";  
-import {                                          
+import {                                  
   NoiseOverlay, CustomCursor, AnimatedTitle, 
   RevealOnScroll, TiltCard 
 } from "./MotionComponents";
@@ -130,13 +130,28 @@ export default function Home() {
   const originalPrice = heroProduct.price;
   const offerPrice = originalPrice - 20;
 
-  const handleBuy = (product) => {
+  // --- UPDATED BUY FUNCTION TO HANDLE OFFERS ---
+  const handleBuy = (product, isOffer = false) => {
     if (product._id === "orvella-golden-root-main") {
         alert("⚠️ SYSTEM NOTICE: DATABASE IS EMPTY\n\nAdmin ne abhi tak product database me add nahi kiya hai.");
         return; 
     }
+    
     if (product) {
-      addToCart(product);
+      let productToAdd = product;
+
+      // Agar Offer button se click hua hai, toh modify product details
+      if (isOffer) {
+        productToAdd = {
+            ...product,
+            _id: `${product._id}-offer`, // Unique ID for offer item
+            price: offerPrice,           // Apply Offer Price (100)
+            name: `${product.name} (Limited Deal)`,
+            tag: "Flash Sale"
+        };
+      }
+
+      addToCart(productToAdd);
       setIsCartOpen(true); 
       setSelectedProduct(null); 
     }
@@ -654,7 +669,8 @@ export default function Home() {
                       </div>
 
                       <button 
-                        onClick={() => handleBuy(heroProduct)} 
+                        // 👇 Updated click handler to pass true for offer
+                        onClick={() => handleBuy(heroProduct, true)} 
                         className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
                       >
                           Claim Offer Now
@@ -714,9 +730,9 @@ export default function Home() {
                 <p>&copy; 2026 Orvella. All Rights Reserved.</p>
                 <div className="flex gap-8 mt-4 md:mt-0">
                    <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-    <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
-    <Link to="/refund" className="hover:text-white transition-colors">Refunds</Link>
-    <Link to="/admin" className="hover:text-[#D4AF37] transition-colors">Admin</Link>
+                   <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+                   <Link to="/refund" className="hover:text-white transition-colors">Refunds</Link>
+                   <Link to="/admin" className="hover:text-[#D4AF37] transition-colors">Admin</Link>
                 </div>
             </div>
         </div>
