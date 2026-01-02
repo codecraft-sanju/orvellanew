@@ -100,7 +100,7 @@ export default function AdminDashboard() {
   const [productForm, setProductForm] = useState({
     _id: null,
     name: "Orvella The Golden Root", // Default values provided for ease
-    price: "1299",
+    price: "120",
     description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention.",
     stock: 100,
     imageUrl: "/orvella.jpeg",
