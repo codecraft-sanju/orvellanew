@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Package, Search, 
   CheckCircle, X, Edit, Trash2, DollarSign, LogOut, 
   Loader2, Banknote, QrCode, ChevronRight,
-  TrendingUp, Menu, Save, Shield, Plus 
+  TrendingUp, Menu, Save, Shield, Plus, Zap // Added Zap icon for Flash Sale
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, Tooltip, ResponsiveContainer 
@@ -102,7 +102,7 @@ export default function AdminDashboard() {
     name: "Orvella The Golden Root", 
     price: "120",
     description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention.",
-    longDescription: "", // ADDED: New field for detailed description
+    longDescription: "", 
     stock: 100,
     imageUrl: "/orvella.jpeg",
     category: "Luxury"
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
         name: currentProduct.name,
         price: currentProduct.price,
         description: currentProduct.description,
-        longDescription: currentProduct.longDescription || currentProduct.description, // UPDATED: Fallback logic
+        longDescription: currentProduct.longDescription || currentProduct.description, 
         stock: currentProduct.stock,
         imageUrl: currentProduct.images?.[0]?.url || "",
         category: currentProduct.category || "Luxury"
@@ -241,7 +241,7 @@ export default function AdminDashboard() {
         name: productForm.name,
         price: productForm.price,
         description: productForm.description,
-        longDescription: productForm.longDescription, // UPDATED: Included in payload
+        longDescription: productForm.longDescription, 
         stock: productForm.stock,
         category: productForm.category,
         images: [imagePayload]
@@ -281,6 +281,11 @@ export default function AdminDashboard() {
     if (filterStatus === 'Pending') return o.orderStatus === 'Pending';
     return true;
   });
+
+  // --- HELPER TO CHECK IF ORDER CONTAINS OFFER ITEM ---
+  const isOfferOrder = (order) => {
+    return order.orderItems && order.orderItems.some(item => item.name && item.name.includes("Limited Deal"));
+  };
 
   if (loading) return (
       <div className="h-screen bg-[#050505] flex flex-col items-center justify-center text-[#D4AF37]">
@@ -371,7 +376,10 @@ export default function AdminDashboard() {
                                         <ShoppingBag size={18}/>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-bold text-white">{order.user?.name || "Guest"}</p>
+                                        <p className="text-sm font-bold text-white flex items-center gap-2">
+                                            {order.user?.name || "Guest"}
+                                            {isOfferOrder(order) && <Zap size={12} className="text-yellow-400" fill="currentColor"/>}
+                                        </p>
                                         <p className="text-[10px] text-gray-500">#{order._id.slice(-6)} • {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
                                 </div>
@@ -422,6 +430,12 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-xs font-mono text-[#D4AF37]">#{order._id.slice(-6)}</span>
                                         <PaymentBadge id={order.paymentInfo?.id} status={order.paymentInfo?.status} />
+                                        {/* 🔥 FLASH SALE BADGE */}
+                                        {isOfferOrder(order) && (
+                                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-500 text-[9px] font-bold uppercase animate-pulse">
+                                                <Zap size={8} fill="currentColor"/> Offer
+                                            </span>
+                                        )}
                                     </div>
                                     <h4 className="text-white font-bold">{order.user?.name || "Guest"}</h4>
                                 </div>
@@ -448,7 +462,7 @@ export default function AdminDashboard() {
             </div>
         )}
 
-        {/* VIEW: INVENTORY - Modified to support Add Product */}
+        {/* VIEW: INVENTORY */}
         {activeTab === 'inventory' && (
             <div className="p-4 flex flex-col h-full justify-center">
                  {masterProduct ? (
@@ -598,7 +612,13 @@ export default function AdminDashboard() {
                                     <div key={i} className="flex gap-3 bg-[#050505] p-3 rounded-xl border border-white/5">
                                         <img src={item.image} className="w-12 h-12 rounded object-cover bg-white/5" />
                                         <div className="flex-1">
-                                            <p className="text-white text-sm font-medium line-clamp-1">{item.name}</p>
+                                            <p className="text-white text-sm font-medium line-clamp-1">
+                                                {item.name}
+                                                {/* 🔥 HIGHLIGHT ITEM IF OFFER */}
+                                                {item.name.includes("Limited Deal") && (
+                                                    <span className="ml-2 text-[8px] bg-red-500 text-white px-1 py-0.5 rounded uppercase font-bold">Offer</span>
+                                                )}
+                                            </p>
                                             <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
                                         </div>
                                         <p className="text-white font-serif">₹{item.price * item.quantity}</p>
@@ -686,7 +706,6 @@ export default function AdminDashboard() {
                             <input type="text" placeholder="Image URL (e.g., /orvella.jpeg)" value={productForm.imageUrl} onChange={e => setProductForm({...productForm, imageUrl: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none text-xs mt-1"/>
                         </div>
                         
-                        {/* UPDATED DESCRIPTION FIELDS */}
                         <div>
                             <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Short Description (Hero Section)</label>
                             <textarea 
