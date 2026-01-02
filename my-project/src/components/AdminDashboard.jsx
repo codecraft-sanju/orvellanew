@@ -221,7 +221,7 @@ export default function AdminDashboard() {
         name: "Orvella The Golden Root",
         price: "120",
         description: "Crafted with a secret chemical formula for the elite.",
-        longDescription: "Here you can write the detailed story about the perfume...", // UPDATED: Default value
+        longDescription: "Here you can write the detailed story about the perfume...", 
         stock: 100,
         imageUrl: "/orvella.jpeg",
         category: "Luxury"
