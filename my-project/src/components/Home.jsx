@@ -11,7 +11,7 @@ import {
 import { useShop } from "./ShopContext"; 
 import CheckoutModal from "./Checkout";           
 import OrderSuccessModal from "./OrderSuccess";  
-import {                          
+import {                              
   NoiseOverlay, CustomCursor, AnimatedTitle, 
   RevealOnScroll, TiltCard 
 } from "./MotionComponents";
@@ -115,7 +115,7 @@ export default function Home() {
     };
   }, [mobileMenuOpen, showOrderSuccess, selectedProduct, isCheckoutOpen, setShowOrderSuccess]);
 
-  // --- NEWSLETTER HANDLER ---
+  // --- NEWSLETTER HANDLER (FIXED) ---
   const handleSubscribe = async (e) => {
     e.preventDefault();
     
@@ -129,14 +129,20 @@ export default function Home() {
     setSubscribeMsg("");
 
     try {
-        // Fetch API URL from .env (VITE_API_URL should be set in .env file)
-        const API_URL = import.meta.env.VITE_API_URL;
+        // FIX: Add fallback || "" so it doesn't print "undefined" in the URL
+        const API_URL = import.meta.env.VITE_API_URL || "";
 
         const response = await fetch(`${API_URL}/api/newsletter`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
         });
+
+        // SAFETY: Check if response is actually JSON to prevent crashes
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+           throw new Error("Server error: Response was not JSON");
+        }
 
         const data = await response.json();
 
