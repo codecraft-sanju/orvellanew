@@ -21,11 +21,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 }));
 
-//  Preflight (405 killer)
-app.options("*", cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true,
-}));
+
 
 // --- Route Imports ---
 const product = require("./routes/productRoute");
