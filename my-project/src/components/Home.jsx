@@ -83,7 +83,7 @@ export default function Home() {
   const DEFAULT_PRODUCT = {
     _id: "orvella-golden-root-main", 
     name: "Orvella The Golden Root",
-    price: 5999, 
+    price: 120, 
     description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury.",
     images: [{ url: "/orvella.jpeg" }], 
     category: "Signature Scent",
