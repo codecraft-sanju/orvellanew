@@ -97,13 +97,13 @@ export const ContactPage = () => (
     <div className="grid md:grid-cols-2 gap-8 mt-8 border border-white/10 p-8 rounded-lg bg-[#121212]">
         <div>
             <h4 className="text-[#D4AF37] font-bold uppercase tracking-widest text-xs mb-2">Customer Support</h4>
-            <p className="text-white">support@orvella.com</p>
-            <p className="text-gray-500 text-sm mt-1">+91 98765 43210</p>
+            <p className="text-white">support@orvellaperfumegmail.com</p>
+            <p className="text-gray-500 text-sm mt-1">+91 7298317177</p>
         </div>
         <div>
             <h4 className="text-[#D4AF37] font-bold uppercase tracking-widest text-xs mb-2">Headquarters</h4>
-            <p className="text-white">Orvella Luxury Pvt Ltd.</p>
-            <p className="text-gray-500 text-sm mt-1">123, Bareli, UP - 400001</p>
+            <p className="text-white">Orvella Pvt Ltd.</p>
+            <p className="text-gray-500 text-sm mt-1">Bilsanda,Bareilly-UP - 262202</p>
         </div> 
     </div>
   </PolicyLayout>
