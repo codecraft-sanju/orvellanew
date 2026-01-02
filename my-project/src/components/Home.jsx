@@ -10,7 +10,7 @@ import {
 import { useShop } from "./ShopContext"; 
 import CheckoutModal from "./Checkout";           
 import OrderSuccessModal from "./OrderSuccess";  
-import {                                                      
+import {                                                          
   NoiseOverlay, CustomCursor, AnimatedTitle, 
   RevealOnScroll, TiltCard 
 } from "./MotionComponents";
@@ -85,6 +85,7 @@ export default function Home() {
     name: "Orvella The Golden Root",
     price: 120, 
     description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury.",
+    longDescription: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury. This masterpiece is created using rare ingredients sourced from the depths of the Amazon...",
     images: [{ url: "/orvella.jpeg" }], 
     category: "Signature Scent",
     stock: 100, 
@@ -126,12 +127,12 @@ export default function Home() {
 
   const handleConfirmOrder = (method) => {
    setLastOrderDetails({ method: method }); 
-    
-    
-    setIsCheckoutOpen(false); 
-    
-    
-    setShowOrderSuccess(true);   
+   
+   
+   setIsCheckoutOpen(false); 
+   
+   
+   setShowOrderSuccess(true);   
   };
 
   const handleContinueShopping = () => {
@@ -516,8 +517,9 @@ export default function Home() {
                     </RevealOnScroll>
                     
                     <RevealOnScroll delay={0.3}>
-                      <p className="text-gray-400 leading-loose text-lg">
-                          {heroProduct.description}
+                      {/* THIS IS THE UPDATED PART FOR LONG DESCRIPTION */}
+                      <p className="text-gray-400 leading-loose text-lg whitespace-pre-line">
+                          {heroProduct.longDescription || heroProduct.description}
                       </p>
                     </RevealOnScroll>
 

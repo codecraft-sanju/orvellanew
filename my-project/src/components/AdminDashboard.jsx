@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Package, Search, 
   CheckCircle, X, Edit, Trash2, DollarSign, LogOut, 
   Loader2, Banknote, QrCode, ChevronRight,
-  TrendingUp, Menu, Save, Shield, Plus // Added Plus icon
+  TrendingUp, Menu, Save, Shield, Plus 
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, Tooltip, ResponsiveContainer 
@@ -99,9 +99,10 @@ export default function AdminDashboard() {
   // Product Form State
   const [productForm, setProductForm] = useState({
     _id: null,
-    name: "Orvella The Golden Root", // Default values provided for ease
+    name: "Orvella The Golden Root", 
     price: "120",
     description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention.",
+    longDescription: "", // ADDED: New field for detailed description
     stock: 100,
     imageUrl: "/orvella.jpeg",
     category: "Luxury"
@@ -205,6 +206,7 @@ export default function AdminDashboard() {
         name: currentProduct.name,
         price: currentProduct.price,
         description: currentProduct.description,
+        longDescription: currentProduct.longDescription || currentProduct.description, // UPDATED: Fallback logic
         stock: currentProduct.stock,
         imageUrl: currentProduct.images?.[0]?.url || "",
         category: currentProduct.category || "Luxury"
@@ -219,6 +221,7 @@ export default function AdminDashboard() {
         name: "Orvella The Golden Root",
         price: "1299",
         description: "Crafted with a secret chemical formula for the elite.",
+        longDescription: "Here you can write the detailed story about the perfume...", // UPDATED: Default value
         stock: 100,
         imageUrl: "/orvella.jpeg",
         category: "Luxury"
@@ -233,30 +236,28 @@ export default function AdminDashboard() {
     // Prepare image object structure
     const imagePayload = { public_id: "img_" + Date.now(), url: productForm.imageUrl };
 
+    // Prepare payload object
+    const productDataPayload = {
+        name: productForm.name,
+        price: productForm.price,
+        description: productForm.description,
+        longDescription: productForm.longDescription, // UPDATED: Included in payload
+        stock: productForm.stock,
+        category: productForm.category,
+        images: [imagePayload]
+    };
+
     try {
         if (isEditingMode && productForm._id) {
             // --- UPDATE EXISTING PRODUCT ---
-            const updateData = {
-                ...productForm,
-                images: [imagePayload]
-            };
-            const { data } = await axios.put(`${API_URL}/admin/product/${productForm._id}`, updateData, {
+            const { data } = await axios.put(`${API_URL}/admin/product/${productForm._id}`, productDataPayload, {
                 headers: { "Content-Type": "application/json" }, withCredentials: true
             });
             setProducts([data.product]); // Assuming single product logic for now
             showNotification("Product Updated!");
         } else {
             // --- CREATE NEW PRODUCT ---
-            const createData = {
-                name: productForm.name,
-                price: productForm.price,
-                description: productForm.description,
-                stock: productForm.stock,
-                category: productForm.category,
-                images: [imagePayload] // Assuming backend expects array
-            };
-            
-            const { data } = await axios.post(`${API_URL}/admin/product/new`, createData, {
+            const { data } = await axios.post(`${API_URL}/admin/product/new`, productDataPayload, {
                 headers: { "Content-Type": "application/json" }, withCredentials: true
             });
             
@@ -684,10 +685,28 @@ export default function AdminDashboard() {
                             <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Image URL</label>
                             <input type="text" placeholder="Image URL (e.g., /orvella.jpeg)" value={productForm.imageUrl} onChange={e => setProductForm({...productForm, imageUrl: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none text-xs mt-1"/>
                         </div>
+                        
+                        {/* UPDATED DESCRIPTION FIELDS */}
                         <div>
-                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Description</label>
-                            <textarea placeholder="Description" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none h-32 resize-none mt-1"/>
+                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Short Description (Hero Section)</label>
+                            <textarea 
+                                placeholder="Short intro for top banner..." 
+                                value={productForm.description} 
+                                onChange={e => setProductForm({...productForm, description: e.target.value})} 
+                                className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none h-24 resize-none mt-1"
+                            />
                         </div>
+
+                        <div>
+                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-4 block">Long Description (Details Section)</label>
+                            <textarea 
+                                placeholder="Detailed story for the bottom section..." 
+                                value={productForm.longDescription} 
+                                onChange={e => setProductForm({...productForm, longDescription: e.target.value})} 
+                                className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none h-32 resize-none mt-1"
+                            />
+                        </div>
+
                         <div className="flex gap-3 mt-4">
                             <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-3 bg-white/5 text-gray-400 font-bold uppercase rounded-xl hover:bg-white/10 transition-colors">Cancel</button>
                             <button type="submit" disabled={isSubmitting} className="flex-1 bg-[#D4AF37] text-black font-bold uppercase py-3 rounded-xl hover:bg-white transition-colors flex items-center justify-center gap-2">
