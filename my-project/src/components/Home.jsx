@@ -115,7 +115,7 @@ export default function Home() {
     };
   }, [mobileMenuOpen, showOrderSuccess, selectedProduct, isCheckoutOpen, setShowOrderSuccess]);
 
-  // --- NEWSLETTER HANDLER ---
+  // --- NEWSLETTER HANDLER (UPDATED FIX) ---
   const handleSubscribe = async (e) => {
     e.preventDefault();
     
@@ -129,8 +129,28 @@ export default function Home() {
     setSubscribeMsg("");
 
     try {
-        // Fetch API URL from .env (VITE_API_URL should be set in .env file)
-        const API_URL = import.meta.env.VITE_API_URL;
+        // --- URL FIX LOGIC ---
+        // 1. Try to get URL from .env
+        let API_URL = import.meta.env.VITE_API_URL;
+
+        // 2. Check if it's undefined or the string "undefined"
+        if (!API_URL || API_URL === "undefined") {
+            if (window.location.hostname.includes("localhost")) {
+                // Agar Localhost hai toh port 5000 assume karein
+                API_URL = "http://localhost:5000";
+            } else {
+                // Agar Live website hai (orvellaluxury.in) toh relative path use karein
+                // Iska matlab backend bhi same domain par /api par sun raha hoga
+                API_URL = ""; 
+            }
+        }
+
+        // Clean up: trailing slash hata dein agar galti se aa gaya ho
+        if (API_URL.endsWith("/")) {
+            API_URL = API_URL.slice(0, -1);
+        }
+
+        console.log("Subscribing to:", `${API_URL}/api/newsletter`); // Debugging ke liye
 
         const response = await fetch(`${API_URL}/api/newsletter`, {
             method: "POST",
@@ -138,20 +158,27 @@ export default function Home() {
             body: JSON.stringify({ email }),
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-            setSubscribeMsg("Welcome to the inner circle.");
-            setEmail(""); // Clear input
+        // Response check karein - agar HTML error page aaya toh JSON parse fail hoga
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            const data = await response.json();
+            if (response.ok) {
+                setSubscribeMsg("Welcome to the inner circle.");
+                setEmail(""); // Clear input
+            } else {
+                setSubscribeMsg(data.message || "Something went wrong.");
+            }
         } else {
-            setSubscribeMsg(data.message || "Something went wrong.");
+            // Agar response JSON nahi hai (e.g., 404 HTML page)
+            console.error("Received non-JSON response");
+            setSubscribeMsg("Server error. Please try again later.");
         }
+
     } catch (error) {
-        setSubscribeMsg("Server connection failed.");
+        setSubscribeMsg("Connection failed.");
         console.error("Newsletter Error:", error);
     } finally {
         setSubscribing(false);
-        // Message remove after 3 seconds
         setTimeout(() => setSubscribeMsg(""), 3000);
     }
   };
