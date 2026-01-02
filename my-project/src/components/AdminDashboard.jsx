@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import io from 'socket.io-client';
 import { 
-  LayoutDashboard, ShoppingBag, Users, Package, Search, Bell, 
-  CheckCircle, X, Edit, Trash2, Filter, DollarSign, LogOut, 
-  Loader2, CreditCard, Banknote, QrCode, MapPin, ChevronRight,
-  TrendingUp, Menu, Save, Shield, ShieldAlert
+  LayoutDashboard, ShoppingBag, Users, Package, Search, 
+  CheckCircle, X, Edit, Trash2, DollarSign, LogOut, 
+  Loader2, Banknote, QrCode, ChevronRight,
+  TrendingUp, Menu, Save, Shield, Plus // Added Plus icon
 } from 'lucide-react';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+  AreaChart, Area, XAxis, Tooltip, ResponsiveContainer 
 } from 'recharts';
 
 // --- API CONFIGURATION ---
@@ -19,7 +19,6 @@ const API_URL = `${BACKEND_URL}/api/v1`;
 const socket = io(BACKEND_URL); 
 
 // --- UTILITY COMPONENTS ---
-
 const NoiseOverlay = () => (
   <div className="fixed inset-0 z-[0] pointer-events-none opacity-[0.03] mix-blend-overlay">
     <svg className="w-full h-full">
@@ -31,7 +30,6 @@ const NoiseOverlay = () => (
   </div>
 );
 
-// Mobile Optimized Stat Card
 const StatCard = ({ title, value, subValue, icon: Icon, color }) => (
     <div className="min-w-[160px] md:min-w-[200px] bg-[#121212] border border-white/5 p-4 rounded-xl flex flex-col justify-between relative overflow-hidden snap-center shrink-0">
         <div className={`absolute -right-2 -top-2 opacity-10 ${color}`}>
@@ -52,7 +50,6 @@ const StatCard = ({ title, value, subValue, icon: Icon, color }) => (
 
 const PaymentBadge = ({ method, status, id }) => {
     const isCOD = id === 'cod';
-    // Manual UPI Logic: Not COD and ID doesn't start with standard gateway prefix
     const isManualUPI = !isCOD && !id.startsWith('pay_');
 
     if (isCOD) {
@@ -71,7 +68,7 @@ const PaymentBadge = ({ method, status, id }) => {
     }
     return (
         <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase">
-            <CreditCard size={10} /> Paid
+            Paid
         </span>
     );
 };
@@ -95,17 +92,19 @@ export default function AdminDashboard() {
   
   // UI Interaction States
   const [showOrderSheet, setShowOrderSheet] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false); // Used for Add & Edit
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isEditingMode, setIsEditingMode] = useState(false); // New State to track mode
 
-  // Edit Product Form State
+  // Product Form State
   const [productForm, setProductForm] = useState({
     _id: null,
-    name: "",
-    price: "",
-    description: "",
-    stock: 0,
-    imageUrl: ""
+    name: "Orvella The Golden Root", // Default values provided for ease
+    price: "1299",
+    description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention.",
+    stock: 100,
+    imageUrl: "/orvella.jpeg",
+    category: "Luxury"
   });
 
   // --- DATA FETCHING ---
@@ -196,36 +195,79 @@ export default function AdminDashboard() {
       finally { setActionLoading(null); }
   };
 
-  // --- PRODUCT MANAGEMENT ---
+  // --- PRODUCT MANAGEMENT (EDIT & CREATE) ---
   const openEditModal = () => {
     if (products.length === 0) return;
     const currentProduct = products[0]; 
+    setIsEditingMode(true);
     setProductForm({
         _id: currentProduct._id,
         name: currentProduct.name,
         price: currentProduct.price,
         description: currentProduct.description,
         stock: currentProduct.stock,
-        imageUrl: currentProduct.images?.[0]?.url || ""
+        imageUrl: currentProduct.images?.[0]?.url || "",
+        category: currentProduct.category || "Luxury"
     });
     setShowEditModal(true);
   };
 
-  const handleProductUpdate = async (e) => {
+  const openAddModal = () => {
+    setIsEditingMode(false);
+    setProductForm({
+        _id: null,
+        name: "Orvella The Golden Root",
+        price: "1299",
+        description: "Crafted with a secret chemical formula for the elite.",
+        stock: 100,
+        imageUrl: "/orvella.jpeg",
+        category: "Luxury"
+    });
+    setShowEditModal(true);
+  };
+
+  const handleProductSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    
+    // Prepare image object structure
+    const imagePayload = { public_id: "img_" + Date.now(), url: productForm.imageUrl };
+
     try {
-        const updateData = {
-            ...productForm,
-            images: [{ public_id: "update_" + Date.now(), url: productForm.imageUrl }]
-        };
-        const { data } = await axios.put(`${API_URL}/admin/product/${productForm._id}`, updateData, {
-            headers: { "Content-Type": "application/json" }, withCredentials: true
-        });
-        setProducts([data.product]); 
-        showNotification("Product Updated!");
+        if (isEditingMode && productForm._id) {
+            // --- UPDATE EXISTING PRODUCT ---
+            const updateData = {
+                ...productForm,
+                images: [imagePayload]
+            };
+            const { data } = await axios.put(`${API_URL}/admin/product/${productForm._id}`, updateData, {
+                headers: { "Content-Type": "application/json" }, withCredentials: true
+            });
+            setProducts([data.product]); // Assuming single product logic for now
+            showNotification("Product Updated!");
+        } else {
+            // --- CREATE NEW PRODUCT ---
+            const createData = {
+                name: productForm.name,
+                price: productForm.price,
+                description: productForm.description,
+                stock: productForm.stock,
+                category: productForm.category,
+                images: [imagePayload] // Assuming backend expects array
+            };
+            
+            const { data } = await axios.post(`${API_URL}/admin/product/new`, createData, {
+                headers: { "Content-Type": "application/json" }, withCredentials: true
+            });
+            
+            setProducts([data.product]); // Update state
+            showNotification("Product Created!");
+        }
         setShowEditModal(false);
-    } catch (error) { showNotification("Update Failed"); } 
+    } catch (error) { 
+        console.error(error);
+        showNotification(isEditingMode ? "Update Failed" : "Creation Failed"); 
+    } 
     finally { setIsSubmitting(false); }
   };
 
@@ -321,7 +363,7 @@ export default function AdminDashboard() {
                 <div>
                     <h3 className="text-sm font-bold text-gray-400 uppercase mb-3 px-1">Recent Activity</h3>
                     <div className="space-y-3">
-                        {orders.slice(0, 5).map(order => (
+                        {orders.length > 0 ? orders.slice(0, 5).map(order => (
                             <div key={order._id} onClick={() => setShowOrderSheet(order)} className="bg-[#121212] border border-white/5 p-3 rounded-xl flex items-center justify-between active:scale-[0.98] transition-transform">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
@@ -337,7 +379,9 @@ export default function AdminDashboard() {
                                     <span className={`text-[9px] px-1.5 py-0.5 rounded ${order.orderStatus === 'Delivered' ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'}`}>{order.orderStatus}</span>
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <p className="text-gray-500 text-xs text-center py-4">No recent orders.</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -403,7 +447,7 @@ export default function AdminDashboard() {
             </div>
         )}
 
-        {/* VIEW: INVENTORY */}
+        {/* VIEW: INVENTORY - Modified to support Add Product */}
         {activeTab === 'inventory' && (
             <div className="p-4 flex flex-col h-full justify-center">
                  {masterProduct ? (
@@ -426,7 +470,16 @@ export default function AdminDashboard() {
                          </div>
                      </div>
                  ) : (
-                    <div className="text-center text-gray-500">No Product Found</div>
+                    <div className="text-center text-gray-500 flex flex-col items-center">
+                        <Package size={48} className="mb-4 opacity-20"/>
+                        <p className="mb-6">No Product Found in Database</p>
+                        <button 
+                            onClick={openAddModal}
+                            className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center gap-2 uppercase tracking-wider"
+                        >
+                            <Plus size={18}/> Add First Product
+                        </button>
+                    </div>
                  )}
             </div>
         )}
@@ -603,14 +656,16 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
-      {/* --- EDIT PRODUCT MODAL --- */}
+      {/* --- ADD / EDIT PRODUCT MODAL --- */}
       <AnimatePresence>
         {showEditModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
                 <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="bg-[#121212] border border-[#D4AF37]/50 w-full max-w-lg rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
-                    <h2 className="text-xl font-serif text-[#D4AF37] mb-6 flex items-center gap-2"><Edit size={20}/> Edit Product</h2>
-                    <form onSubmit={handleProductUpdate} className="space-y-4">
+                    <h2 className="text-xl font-serif text-[#D4AF37] mb-6 flex items-center gap-2">
+                        {isEditingMode ? <><Edit size={20}/> Edit Product</> : <><Plus size={20}/> Add New Product</>}
+                    </h2>
+                    <form onSubmit={handleProductSubmit} className="space-y-4">
                         <div>
                             <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Product Name</label>
                             <input type="text" placeholder="Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none mt-1"/>
@@ -627,7 +682,7 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                             <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Image URL</label>
-                            <input type="text" placeholder="Image URL" value={productForm.imageUrl} onChange={e => setProductForm({...productForm, imageUrl: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none text-xs mt-1"/>
+                            <input type="text" placeholder="Image URL (e.g., /orvella.jpeg)" value={productForm.imageUrl} onChange={e => setProductForm({...productForm, imageUrl: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-xl text-white focus:border-[#D4AF37] outline-none text-xs mt-1"/>
                         </div>
                         <div>
                             <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Description</label>
@@ -636,7 +691,7 @@ export default function AdminDashboard() {
                         <div className="flex gap-3 mt-4">
                             <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-3 bg-white/5 text-gray-400 font-bold uppercase rounded-xl hover:bg-white/10 transition-colors">Cancel</button>
                             <button type="submit" disabled={isSubmitting} className="flex-1 bg-[#D4AF37] text-black font-bold uppercase py-3 rounded-xl hover:bg-white transition-colors flex items-center justify-center gap-2">
-                                {isSubmitting ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Changes</>}
+                                {isSubmitting ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> {isEditingMode ? 'Save Changes' : 'Create Product'}</>}
                             </button>
                         </div>
                     </form>
@@ -644,7 +699,7 @@ export default function AdminDashboard() {
             </div>
         )}
       </AnimatePresence>
-
+   
     </div>
   );
 }
