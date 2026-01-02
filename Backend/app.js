@@ -27,14 +27,15 @@ app.use(cors({
 const product = require("./routes/productRoute");
 const user = require("./routes/userRoute");
 const order = require("./routes/orderRoute");
-const payment = require("./routes/paymentRoute"); // Razorpay ke liye
+const payment = require("./routes/paymentRoute");
+const newsletterRoutes = require("./routes/newsletterRoutes"); // Razorpay ke liye
 
 // --- Mount Routes ---
 app.use("/api/v1", product);
 app.use("/api/v1", user);
 app.use("/api/v1", order);
 app.use("/api/v1", payment);
-
+app.use("/api/newsletter", newsletterRoutes);
 // --- Error Handling Middleware (Basic) ---
 // Agar koi route nahi mila ya server error aayi
 app.use((err, req, res, next) => {

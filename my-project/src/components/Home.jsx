@@ -4,14 +4,14 @@ import { motion, useTransform, useScroll, AnimatePresence } from "framer-motion"
 import { 
   ShoppingBag, Menu, X, Star, ShieldCheck, Truck, 
   Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight,
-  Timer // Added Timer Icon
+  Timer 
 } from "lucide-react";
 
 // --- IMPORTS ---
 import { useShop } from "./ShopContext"; 
 import CheckoutModal from "./Checkout";           
 import OrderSuccessModal from "./OrderSuccess";  
-import {                                  
+import {                          
   NoiseOverlay, CustomCursor, AnimatedTitle, 
   RevealOnScroll, TiltCard 
 } from "./MotionComponents";
@@ -36,6 +36,11 @@ export default function Home() {
   // --- STATE FOR OFFER TIMER ---
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
+  // --- STATE FOR NEWSLETTER ---
+  const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeMsg, setSubscribeMsg] = useState("");
+
   const navigate = useNavigate();
   const { scrollY } = useScroll();
   
@@ -53,7 +58,6 @@ export default function Home() {
   useEffect(() => {
     const calculateTimeLeft = () => {
       const now = new Date();
-      // Set target to next midnight
       const target = new Date(now);
       target.setHours(24, 0, 0, 0); 
       
@@ -66,13 +70,12 @@ export default function Home() {
           seconds: Math.floor((difference / 1000) % 60),
         });
       } else {
-        // Fallback just in case, though the loop handles it
         setTimeLeft({ hours: 23, minutes: 59, seconds: 59 });
       }
     };
 
     const timer = setInterval(calculateTimeLeft, 1000);
-    calculateTimeLeft(); // Run immediately
+    calculateTimeLeft(); 
 
     return () => clearInterval(timer);
   }, []);
@@ -112,6 +115,47 @@ export default function Home() {
     };
   }, [mobileMenuOpen, showOrderSuccess, selectedProduct, isCheckoutOpen, setShowOrderSuccess]);
 
+  // --- NEWSLETTER HANDLER ---
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    
+    // 1. Basic Validation
+    if (!email || !email.includes("@")) {
+        setSubscribeMsg("Please enter a valid email.");
+        return;
+    }
+
+    setSubscribing(true);
+    setSubscribeMsg("");
+
+    try {
+        // Fetch API URL from .env (VITE_API_URL should be set in .env file)
+        const API_URL = import.meta.env.VITE_API_URL;
+
+        const response = await fetch(`${API_URL}/api/newsletter`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            setSubscribeMsg("Welcome to the inner circle.");
+            setEmail(""); // Clear input
+        } else {
+            setSubscribeMsg(data.message || "Something went wrong.");
+        }
+    } catch (error) {
+        setSubscribeMsg("Server connection failed.");
+        console.error("Newsletter Error:", error);
+    } finally {
+        setSubscribing(false);
+        // Message remove after 3 seconds
+        setTimeout(() => setSubscribeMsg(""), 3000);
+    }
+  };
+
   const DEFAULT_PRODUCT = {
     _id: "orvella-golden-root-main", 
     name: "Orvella The Golden Root",
@@ -145,7 +189,7 @@ export default function Home() {
         productToAdd = {
             ...product,
             _id: `${product._id}-offer`, // Unique ID for offer item
-            price: offerPrice,           // Apply Offer Price (100)
+            price: offerPrice,           // Apply Offer Price
             name: `${product.name} (Limited Deal)`,
             tag: "Flash Sale"
         };
@@ -236,7 +280,6 @@ export default function Home() {
                 cart={cart}
                 subtotal={cartTotal}
                 onClose={() => setIsCheckoutOpen(false)}
-                // 👇 Yaha hum wo function pass kar rahe hain
                 onOrderSuccess={handleConfirmOrder}
             />
         )}
@@ -669,14 +712,12 @@ export default function Home() {
                       </div>
 
                       <button 
-                        // 👇 Updated click handler to pass true for offer
                         onClick={() => handleBuy(heroProduct, true)} 
                         className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
                       >
                           Claim Offer Now
                       </button>
                       
-                     
                   </div>
               </div>
             </RevealOnScroll>
@@ -709,18 +750,43 @@ export default function Home() {
                     </ul>
                 </div>
 
+                {/* --- DYNAMIC NEWSLETTER SECTION --- */}
                 <div className="space-y-8">
                     <h4 className="text-white font-bold uppercase tracking-widest text-xs">Newsletter</h4>
-                    <div className="flex flex-col gap-4">
+                    <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
                         <input 
                             type="email" 
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email Address" 
-                            className="bg-white/5 border border-white/10 px-4 py-4 text-white focus:outline-none focus:border-[#D4AF37] transition-colors text-xs placeholder:text-gray-600 tracking-wide"
+                            disabled={subscribing}
+                            className="bg-white/5 border border-white/10 px-4 py-4 text-white focus:outline-none focus:border-[#D4AF37] transition-colors text-xs placeholder:text-gray-600 tracking-wide disabled:opacity-50"
                         />
-                        <button className="bg-white/10 text-white px-4 py-4 hover:bg-[#D4AF37] hover:text-black transition-colors text-xs font-bold uppercase tracking-widest">
-                            Subscribe
+                        <button 
+                            type="submit"
+                            disabled={subscribing}
+                            className="bg-white/10 text-white px-4 py-4 hover:bg-[#D4AF37] hover:text-black transition-colors text-xs font-bold uppercase tracking-widest disabled:cursor-not-allowed flex justify-center items-center"
+                        >
+                            {subscribing ? <span className="animate-pulse">Processing...</span> : "Subscribe"}
                         </button>
-                    </div>
+
+                        <AnimatePresence>
+                            {subscribeMsg && (
+                                <motion.p 
+                                    initial={{ opacity: 0, height: 0 }} 
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className={`text-xs font-mono tracking-wide ${
+                                        subscribeMsg.includes("Welcome") 
+                                        ? "text-[#D4AF37]" 
+                                        : "text-red-500"
+                                    }`}
+                                >
+                                    {subscribeMsg}
+                                </motion.p>
+                            )}
+                        </AnimatePresence>
+                    </form>
                 </div>
             </div>
 
