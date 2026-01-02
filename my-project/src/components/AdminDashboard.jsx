@@ -219,7 +219,7 @@ export default function AdminDashboard() {
     setProductForm({
         _id: null,
         name: "Orvella The Golden Root",
-        price: "1299",
+        price: "120",
         description: "Crafted with a secret chemical formula for the elite.",
         longDescription: "Here you can write the detailed story about the perfume...", // UPDATED: Default value
         stock: 100,
