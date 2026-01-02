@@ -62,8 +62,7 @@ export const ShopProvider = ({ children }) => {
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
   const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  // --- 🔥 ORDER PROCESSING LOGIC (FIXED: NO TAX, MATCHING TOTAL) ---
-  
+  // --- 🔥 ORDER PROCESSING LOGIC (FIXED FOR OFFER ID) ---
   const processOrder = async (paymentDetails, shippingDetails, navigate) => {
     if (!user) {
         showNotification("Please login to place an order");
@@ -81,7 +80,8 @@ export const ShopProvider = ({ children }) => {
         price: item.price,
         quantity: item.qty,
         image: item.images[0].url,
-        product: item._id
+        // 🔥 CRITICAL FIX: Remove "-offer" suffix so backend gets a valid ObjectId
+        product: item._id.replace("-offer", "") 
     }));
 
     // 2. Costs (Calculation Hataya - Direct Mapping)
