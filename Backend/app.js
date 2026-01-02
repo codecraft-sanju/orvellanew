@@ -6,21 +6,25 @@ const cors = require("cors");
 
 // --- Config Environment Variables ---
 if (process.env.NODE_ENV !== "PRODUCTION") {
-  
-require("dotenv").config();
+  require("dotenv").config();
 }
 
 // --- Middlewares ---
-app.use(express.json()); // JSON data handle karne ke liye
-app.use(cookieParser()); // Token cookies read karne ke liye
+app.use(express.json());
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// --- CORS Configuration (Bahut Important) ---
-// Iske bina Frontend API call nahi kar payega
+//  CORS FIX (OPTIONS INCLUDED)
 app.use(cors({
-    origin: [process.env.CLIENT_URL], 
-    credentials: true, 
-    methods: ["GET", "POST", "PUT", "DELETE"],
+  origin: process.env.CLIENT_URL,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+}));
+
+//  Preflight (405 killer)
+app.options("*", cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true,
 }));
 
 // --- Route Imports ---
@@ -28,7 +32,7 @@ const product = require("./routes/productRoute");
 const user = require("./routes/userRoute");
 const order = require("./routes/orderRoute");
 const payment = require("./routes/paymentRoute");
-const newsletterRoutes = require("./routes/newsletterRoutes"); // Razorpay ke liye
+const newsletterRoutes = require("./routes/newsletterRoutes");
 
 // --- Mount Routes ---
 app.use("/api/v1", product);
@@ -36,18 +40,15 @@ app.use("/api/v1", user);
 app.use("/api/v1", order);
 app.use("/api/v1", payment);
 app.use("/api/newsletter", newsletterRoutes);
-// --- Error Handling Middleware (Basic) ---
-// Agar koi route nahi mila ya server error aayi
-app.use((err, req, res, next) => {
-    console.log(err.stack); // Console me error dikhaye
-    
-    const statusCode = err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
 
-    res.status(statusCode).json({
-        success: false,
-        message: message,
-    });
+// --- Error Handling Middleware ---
+app.use((err, req, res, next) => {
+  console.log(err.stack);
+
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
 });
 
 module.exports = app;
