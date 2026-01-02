@@ -676,9 +676,7 @@ export default function Home() {
                           Claim Offer Now
                       </button>
                       
-                      <p className="text-[10px] text-gray-600 mt-4 text-center">
-                        *Offer resets automatically at midnight. Limited stock available.
-                      </p>
+                     
                   </div>
               </div>
             </RevealOnScroll>
