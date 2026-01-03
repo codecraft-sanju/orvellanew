@@ -35,7 +35,7 @@ app.use("/api/v1", product);
 app.use("/api/v1", user);
 app.use("/api/v1", order);
 app.use("/api/v1", payment);
-app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/v1", newsletterRoutes);
 
 // --- Error Handling Middleware ---
 app.use((err, req, res, next) => {
