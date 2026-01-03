@@ -44,18 +44,17 @@ export default function Home() {
   const navigate = useNavigate();
   const { scrollY } = useScroll();
   
-  // Mobile Optimized Parallax: Movement range kam kar diya hai taaki phone pe content bhaage nahi
-  const yHeroText = useTransform(scrollY, [0, 500], [0, 100]);
-  const yHeroImage = useTransform(scrollY, [0, 500], [0, -30]);
+  const yHeroText = useTransform(scrollY, [0, 500], [0, 150]);
+  const yHeroImage = useTransform(scrollY, [0, 500], [0, -50]);
 
   // Smooth Scroll Listener
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // --- TIMER LOGIC ---
+  // --- TIMER LOGIC (Resets every 24 Hours / Midnight) ---
   useEffect(() => {
     const calculateTimeLeft = () => {
       const now = new Date();
@@ -116,9 +115,11 @@ export default function Home() {
     };
   }, [mobileMenuOpen, showOrderSuccess, selectedProduct, isCheckoutOpen, setShowOrderSuccess]);
 
-  // --- NEWSLETTER HANDLER ---
+  // --- NEWSLETTER HANDLER (FIXED) ---
   const handleSubscribe = async (e) => {
     e.preventDefault();
+    
+    // 1. Basic Validation
     if (!email || !email.includes("@")) {
         setSubscribeMsg("Please enter a valid email.");
         return;
@@ -128,12 +129,14 @@ export default function Home() {
     setSubscribeMsg("");
 
     try {
+        
        const response = await fetch("https://orvellanew.onrender.com/api/v1/newsletter", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
         });
 
+        // SAFETY: Check if response is actually JSON to prevent crashes
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
            throw new Error("Server error: Response was not JSON");
@@ -143,14 +146,16 @@ export default function Home() {
 
         if (response.ok) {
             setSubscribeMsg("Welcome to the inner circle.");
-            setEmail(""); 
+            setEmail(""); // Clear input
         } else {
             setSubscribeMsg(data.message || "Something went wrong.");
         }
     } catch (error) {
         setSubscribeMsg("Server connection failed.");
+        console.error("Newsletter Error:", error);
     } finally {
         setSubscribing(false);
+        // Message remove after 3 seconds
         setTimeout(() => setSubscribeMsg(""), 3000);
     }
   };
@@ -159,7 +164,7 @@ export default function Home() {
     _id: "orvella-golden-root-main", 
     name: "Orvella The Golden Root",
     price: 120, 
-    description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention.",
+    description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury.",
     longDescription: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury. This masterpiece is created using rare ingredients sourced from the depths of the Amazon...",
     images: [{ url: "/orvella.jpeg" }], 
     category: "Signature Scent",
@@ -173,24 +178,27 @@ export default function Home() {
   const originalPrice = heroProduct.price;
   const offerPrice = originalPrice - 20;
 
-  // --- UPDATED BUY FUNCTION ---
+  // --- UPDATED BUY FUNCTION TO HANDLE OFFERS ---
   const handleBuy = (product, isOffer = false) => {
     if (product._id === "orvella-golden-root-main") {
-        alert("⚠️ SYSTEM NOTICE: Please check database connection.");
+        alert("⚠️ SYSTEM NOTICE: DATABASE IS EMPTY\n\nAdmin ne abhi tak product database me add nahi kiya hai.");
         return; 
     }
     
     if (product) {
       let productToAdd = product;
+
+      // Agar Offer button se click hua hai, toh modify product details
       if (isOffer) {
         productToAdd = {
             ...product,
-            _id: `${product._id}-offer`,
-            price: offerPrice,
+            _id: `${product._id}-offer`, // Unique ID for offer item
+            price: offerPrice,           // Apply Offer Price
             name: `${product.name} (Limited Deal)`,
             tag: "Flash Sale"
         };
       }
+
       addToCart(productToAdd);
       setIsCartOpen(true); 
       setSelectedProduct(null); 
@@ -229,10 +237,10 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // --- LOADING SCREEN (Highest Z-Index) ---
+  // --- LOADING SCREEN ---
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-[#050505] z-[9999] flex flex-col items-center justify-center overflow-hidden">
+      <div className="fixed inset-0 bg-[#050505] z-[100] flex flex-col items-center justify-center overflow-hidden">
         <NoiseOverlay />
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} 
@@ -257,19 +265,19 @@ export default function Home() {
       <NoiseOverlay />
       <CustomCursor />
 
-      {/* --- TOAST NOTIFICATION (Z-Index High) --- */}
+      {/* --- TOAST NOTIFICATION --- */}
       <AnimatePresence>
         {notification && (
           <motion.div 
             initial={{ y: -100, opacity: 0 }} animate={{ y: 20, opacity: 1 }} exit={{ y: -100, opacity: 0 }}
-            className="fixed top-0 left-0 right-0 mx-auto w-max max-w-[90%] z-[200] bg-[#D4AF37] text-black px-6 py-3 rounded-b-lg font-bold shadow-[0_0_30px_rgba(212,175,55,0.4)] backdrop-blur-md text-center text-sm"
+            className="fixed top-0 left-1/2 -translate-x-1/2 z-[130] bg-[#D4AF37] text-black px-8 py-3 rounded-b-lg font-bold shadow-[0_0_30px_rgba(212,175,55,0.4)] backdrop-blur-md"
           >
             {notification}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* --- CHECKOUT MODAL (Z-Index Highest) --- */}
+      {/* --- CHECKOUT MODAL --- */}
       <AnimatePresence>
         {isCheckoutOpen && (
             <CheckoutModal 
@@ -292,23 +300,23 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* --- CART DRAWER (Z-Index 90: Above Navbar) --- */}
+      {/* --- CART DRAWER --- */}
       <AnimatePresence>
         {isCartOpen && (
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsCartOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[90]"
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60]"
             />
             <motion.div 
               initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-full md:w-[450px] bg-[#0a0a0a] border-l border-[#D4AF37]/20 z-[100] p-6 flex flex-col shadow-[-20px_0_50px_rgba(0,0,0,0.5)]"
+              className="fixed top-0 right-0 h-full w-full md:w-[450px] bg-[#0a0a0a] border-l border-[#D4AF37]/20 z-[70] p-8 flex flex-col shadow-[-20px_0_50px_rgba(0,0,0,0.5)]"
             >
-              <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                <h2 className="text-xl font-serif text-[#D4AF37]">Your Bag ({cartCount})</h2>
-                <button onClick={() => setIsCartOpen(false)} className="hover:rotate-90 transition-transform duration-300 p-2"><X className="text-white hover:text-[#D4AF37]" size={24} /></button>
+              <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
+                <h2 className="text-2xl font-serif text-[#D4AF37]">Your Collection ({cartCount})</h2>
+                <button onClick={() => setIsCartOpen(false)} className="hover:rotate-90 transition-transform duration-300"><X className="text-white hover:text-[#D4AF37]" /></button>
               </div>
 
               {cart.length === 0 ? (
@@ -328,7 +336,7 @@ export default function Home() {
                       />
                       <div className="flex-1">
                         <div className="flex justify-between items-start">
-                          <h4 className="font-serif text-lg text-white group-hover:text-[#D4AF37] transition-colors line-clamp-1">{item.name}</h4>
+                          <h4 className="font-serif text-lg text-white group-hover:text-[#D4AF37] transition-colors">{item.name}</h4>
                           <button onClick={() => removeFromCart(item._id)} className="text-gray-600 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
                         </div>
                         <p className="text-[#D4AF37] text-sm mt-1 font-mono">₹{item.price}</p>
@@ -351,9 +359,9 @@ export default function Home() {
                 <button 
                   disabled={cart.length === 0}
                   onClick={handleInitiateCheckout}
-                  className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Checkout
+                  Checkout Now
                 </button>
               </div>
             </motion.div>
@@ -361,59 +369,58 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* --- PRODUCT DETAIL MODAL (Z-Index 80) --- */}
+      {/* --- PRODUCT DETAIL MODAL --- */}
       <AnimatePresence>
         {selectedProduct && (
-          <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center md:px-4">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center px-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setSelectedProduct(null)}
               className="absolute inset-0 bg-black/90 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              className="relative bg-[#0a0a0a] border border-[#D4AF37]/30 w-full md:max-w-5xl rounded-t-2xl md:rounded-sm overflow-hidden grid md:grid-cols-2 shadow-[0_0_100px_rgba(212,175,55,0.15)] z-[90] max-h-[90vh] overflow-y-auto md:overflow-visible"
+              initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+              className="relative bg-[#0a0a0a] border border-[#D4AF37]/30 max-w-5xl w-full rounded-sm overflow-hidden grid md:grid-cols-2 shadow-[0_0_100px_rgba(212,175,55,0.15)] z-[90]"
             >
-              {/* Mobile Close Button */}
-              <button onClick={() => setSelectedProduct(null)} className="absolute top-4 right-4 z-50 p-2 bg-black/50 rounded-full md:hidden text-white"><X size={20} /></button>
-
-              <div className="h-[300px] md:h-[600px] bg-[#050505] p-8 flex items-center justify-center relative overflow-hidden group">
+              <div className="h-[400px] md:h-[600px] bg-[#050505] p-8 flex items-center justify-center relative overflow-hidden group">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#D4AF37]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                  <img 
                    src={selectedProduct.images && selectedProduct.images[0] ? selectedProduct.images[0].url : "/orvella.jpeg"} 
                    alt={selectedProduct.name} 
-                   className="h-[90%] object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] z-10" 
+                   className="h-[80%] object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] z-10" 
                  />
               </div>
-              <div className="p-8 md:p-16 flex flex-col justify-center relative">
-                <button onClick={() => setSelectedProduct(null)} className="hidden md:block absolute top-6 right-6 text-gray-500 hover:text-white hover:rotate-90 transition-all"><X size={24} /></button>
-                <span className="text-[#D4AF37] uppercase tracking-[0.3em] text-xs font-bold mb-4">{selectedProduct.tag || "Premium Edition"}</span>
-                <h2 className="text-3xl md:text-5xl font-serif text-white mb-6 leading-tight">{selectedProduct.name}</h2>
-                <p className="text-gray-400 leading-relaxed mb-8 text-sm md:text-base border-l-2 border-[#D4AF37]/30 pl-6">{selectedProduct.description}</p>
-                <div className="text-3xl text-[#D4AF37] font-serif mb-10">₹{selectedProduct.price}</div>
-                <button 
+              <div className="p-10 md:p-16 flex flex-col justify-center relative">
+                <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 text-gray-500 hover:text-white hover:rotate-90 transition-all"><X size={24} /></button>
+                <motion.span initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} delay={0.2} className="text-[#D4AF37] uppercase tracking-[0.3em] text-xs font-bold mb-4">{selectedProduct.tag || "Premium Edition"}</motion.span>
+                <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} delay={0.3} className="text-4xl md:text-5xl font-serif text-white mb-6 leading-tight">{selectedProduct.name}</motion.h2>
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} delay={0.4} className="text-gray-400 leading-relaxed mb-8 text-sm md:text-base border-l-2 border-[#D4AF37]/30 pl-6">{selectedProduct.description}</motion.p>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} delay={0.5} className="text-3xl text-[#D4AF37] font-serif mb-10">₹{selectedProduct.price}</motion.div>
+                <motion.button 
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} delay={0.6}
                   onClick={() => handleBuy(selectedProduct)}
                   className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-all duration-300"
                 >
                   Add to Collection
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* --- NAVBAR (Z-Index 40: Standard Layer) --- */}
+      {/* --- NAVBAR --- */}
       <nav 
-        className={`fixed w-full z-40 top-0 transition-all duration-500 ${
+        className={`fixed w-full z-[300] top-0 transition-all duration-500 ${
           mobileMenuOpen 
             ? "bg-transparent py-4" 
             : isScrolled 
-              ? "bg-[#050505]/90 backdrop-blur-lg border-b border-white/5 py-3" 
-              : "bg-transparent py-6"
+              ? "bg-[#050505]/80 backdrop-blur-lg border-b border-white/5 py-4" 
+              : "bg-transparent py-8"
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <Link to="/" className="text-2xl md:text-3xl font-serif font-bold text-[#D4AF37] tracking-[0.2em] hover:text-white transition-colors relative z-[41]">
+          <Link to="/" className="text-2xl md:text-3xl font-serif font-bold text-[#D4AF37] tracking-[0.2em] hover:text-white transition-colors relative z-[301]">
             ORVELLA
           </Link>
           
@@ -423,7 +430,7 @@ export default function Home() {
             <button onClick={() => scrollToSection('offer')} className="hover:text-[#D4AF37] transition-colors hover:scale-110 transform duration-300">Offers</button>
           </div>
           
-          <div className="flex items-center space-x-6 relative z-[41]">
+          <div className="flex items-center space-x-8 relative z-[301]">
              {user ? (
                <div className="hidden md:flex items-center gap-6">
                  {user.role === 'admin' ? (
@@ -437,8 +444,8 @@ export default function Home() {
               <Link to="/auth" className="hidden md:block text-xs font-bold tracking-widest hover:text-[#D4AF37] transition-colors">LOGIN</Link>
             )}
 
-            <button className="relative group p-1" onClick={() => setIsCartOpen(true)}>
-              <ShoppingBag className="text-white group-hover:text-[#D4AF37] transition-colors duration-300" size={22} />
+            <button className="relative group" onClick={() => setIsCartOpen(true)}>
+              <ShoppingBag className="text-white group-hover:text-[#D4AF37] transition-colors duration-300" size={20} />
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-[#D4AF37] text-black text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {cartCount}
@@ -448,21 +455,21 @@ export default function Home() {
             
             {/* MOBILE TOGGLE */}
             <button 
-              className="md:hidden text-white hover:text-[#D4AF37] transition-colors p-1" 
+              className="md:hidden text-white hover:text-[#D4AF37] transition-colors z-[302] relative p-2" 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? <X size={26} className="text-[#D4AF37]" /> : <Menu size={24} />}
+              {mobileMenuOpen ? <X size={28} className="text-[#D4AF37]" /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </nav>
 
-      {/* --- MOBILE OVERLAY MENU (Z-Index 50: Above Navbar content) --- */}
+      {/* --- MOBILE OVERLAY MENU --- */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 top-0 left-0 w-full h-[100dvh] bg-[#050505] z-[39] flex flex-col justify-center px-8 md:hidden overflow-hidden"
+            className="fixed inset-0 top-0 left-0 w-full h-[100dvh] bg-[#050505] z-[200] flex flex-col justify-center px-8 md:hidden overflow-hidden"
           >
             <NoiseOverlay />
             
@@ -499,15 +506,13 @@ export default function Home() {
       </AnimatePresence>
 
       {/* --- HERO SECTION --- */}
-      <section className="relative min-h-screen flex items-center pt-24 pb-12 overflow-hidden">
+      <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
         {/* Ambient Glows */}
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#D4AF37]/10 rounded-full blur-[150px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center w-full relative z-10">
-          
-          {/* Text Content */}
-          <motion.div style={{ y: yHeroText }} className="space-y-6 text-center md:text-left order-2 md:order-1">
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center w-full relative z-10">
+          <motion.div style={{ y: yHeroText }} className="space-y-8 text-center md:text-left">
             <motion.div 
               initial={{ opacity: 0, letterSpacing: "1em" }} animate={{ opacity: 1, letterSpacing: "0.4em" }} transition={{ duration: 1.5 }}
               className="text-[#D4AF37] text-xs md:text-sm uppercase font-bold pl-1"
@@ -519,60 +524,60 @@ export default function Home() {
             
             <motion.p 
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 1 }}
-              className="text-gray-400 text-base md:text-lg max-w-lg mx-auto md:mx-0 font-light leading-relaxed"
+              className="text-gray-400 text-lg max-w-lg mx-auto md:mx-0 font-light leading-relaxed"
             >
               {heroProduct.description}
             </motion.p>
             
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-              className="pt-6 flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
+              className="pt-8 flex flex-col md:flex-row gap-6 justify-center md:justify-start"
             >
               <button 
                 onClick={() => handleBuy(heroProduct)} 
-                className="group px-8 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all duration-500 relative overflow-hidden"
+                className="group px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all duration-500 overflow-hidden relative"
               >
-                <span className="relative z-10">Shop Now</span>
+                <span className="relative z-10 group-hover:text-black transition-colors">Shop Now</span>
+                <div className="absolute inset-0 bg-white transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out" />
               </button>
               
               <button 
                 onClick={() => { if(heroProduct) setSelectedProduct(heroProduct); }} 
-                className="px-8 py-4 border border-white/20 text-white font-bold uppercase tracking-widest hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all"
+                className="px-10 py-4 border border-white/20 text-white font-bold uppercase tracking-widest hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all duration-300 backdrop-blur-sm"
               >
                 View Notes
               </button>
             </motion.div>
           </motion.div>
 
-          {/* Image - Mobile Optimized (Smaller height, clean stacking) */}
           <motion.div 
             style={{ y: yHeroImage }}
             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.5, ease: "easeOut" }}
-            className="relative h-[350px] md:h-[800px] w-full flex justify-center items-center order-1 md:order-2"
+            className="relative h-[500px] md:h-[800px] w-full flex justify-center items-center"
           >
              <TiltCard>
                <motion.img 
                  src={heroProduct.images[0].url} 
                  alt="Orvella Perfume Bottle" 
-                 className="h-full object-contain drop-shadow-[0_20px_50px_rgba(212,175,55,0.15)] z-20"
-                 animate={{ y: [0, -15, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+                 className="w-full h-full object-contain drop-shadow-[0_30px_60px_rgba(212,175,55,0.15)] z-20"
+                 animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
                />
              </TiltCard>
           </motion.div>
         </div>
       </section>
 
-      {/* --- INFINITE BRAND TICKER (Clean Loop) --- */}
-      <div className="py-6 bg-[#D4AF37] border-y border-white/10 overflow-hidden relative z-20">
+      {/* --- INFINITE BRAND TICKER --- */}
+      <div className="py-8 bg-[#D4AF37] border-y border-white/10 overflow-hidden relative z-20">
         <div className="flex whitespace-nowrap">
           <motion.div 
-            animate={{ x: "-50%" }} transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
-            className="flex gap-8 md:gap-16 text-black font-bold tracking-[0.2em] uppercase text-xs md:text-lg items-center"
+            animate={{ x: "-50%" }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+            className="flex gap-16 text-black font-bold tracking-[0.2em] uppercase text-sm md:text-lg items-center"
           >
             {Array(10).fill(null).map((_, i) => (
               <React.Fragment key={i}>
-                <span>Orvella • Luxury Fragrance •</span>
-                <Star size={14} fill="black" />
+                <span>Orvella • The Golden Root • Luxury Fragrance • Exclusive •</span>
+                <Star size={18} fill="black" />
               </React.Fragment>
             ))}
           </motion.div>
@@ -580,43 +585,45 @@ export default function Home() {
       </div>
 
       {/* --- DETAILS SECTION --- */}
-      <section id="details" className="py-24 bg-[#050505] relative">
+      <section id="details" className="py-32 bg-[#050505] relative">
         <div className="max-w-7xl mx-auto px-6">
-            <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-center">
+            <div className="grid md:grid-cols-2 gap-20 items-center">
                 <RevealOnScroll>
-                    <div className="relative bg-[#0a0a0a] p-10 md:p-16 border border-white/5 rounded-sm overflow-hidden group">
+                    <div className="relative bg-[#0a0a0a] p-16 border border-white/5 rounded-sm overflow-hidden group">
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-50" />
                       <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-50" />
+                      <div className="absolute top-4 left-4 border-t border-l border-[#D4AF37] w-8 h-8 transition-all group-hover:w-16 group-hover:h-16"/>
+                      <div className="absolute bottom-4 right-4 border-b border-r border-[#D4AF37] w-8 h-8 transition-all group-hover:w-16 group-hover:h-16"/>
                       <img 
                           src={heroProduct.images[0].url} 
                           alt="Orvella Detail" 
-                          className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
+                          className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] transform group-hover:scale-105 transition-transform duration-700"
                       />
                     </div>
                 </RevealOnScroll>
 
-                <div className="space-y-8 text-center md:text-left">
+                <div className="space-y-10">
                     <RevealOnScroll delay={0.2}>
-                        <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-xs flex items-center justify-center md:justify-start gap-4">
-                          <span className="w-12 h-[1px] bg-[#D4AF37] hidden md:block"></span> The Masterpiece
+                        <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-xs flex items-center gap-4">
+                          <span className="w-12 h-[1px] bg-[#D4AF37]"></span> The Masterpiece
                         </span>
-                        <h2 className="mt-6 text-4xl md:text-6xl font-serif text-white">Unveiling The <br/> <span className="italic text-[#D4AF37]">Golden Root</span></h2>
+                        <h2 className="mt-6 text-5xl md:text-6xl font-serif text-white">Unveiling The <br/> <span className="italic text-[#D4AF37]">Golden Root</span></h2>
                     </RevealOnScroll>
                     
                     <RevealOnScroll delay={0.3}>
-                      <p className="text-gray-400 leading-loose text-base md:text-lg whitespace-pre-line">
+                      <p className="text-gray-400 leading-loose text-lg whitespace-pre-line">
                           {heroProduct.longDescription || heroProduct.description}
                       </p>
                     </RevealOnScroll>
 
                     <RevealOnScroll delay={0.5}>
-                      <div className="flex flex-col md:flex-row items-center gap-6 pt-4">
-                          <div className="text-3xl text-[#D4AF37] font-serif">₹{heroProduct.price}</div>
+                      <div className="flex flex-col md:flex-row items-center gap-8 pt-4">
+                          <div className="text-4xl text-[#D4AF37] font-serif">₹{heroProduct.price}</div>
                           <button 
                               onClick={() => handleBuy(heroProduct)}
-                              className="w-full md:w-auto px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] flex items-center justify-center gap-2"
+                              className="w-full md:w-auto px-12 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] flex items-center justify-center gap-2 group"
                           >
-                              Add to Bag <ArrowRight size={18}/>
+                              Add to Bag <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/>
                           </button>
                       </div>
                     </RevealOnScroll>
@@ -627,16 +634,16 @@ export default function Home() {
 
       {/* --- FEATURES GRID --- */}
       <section className="py-24 bg-[#0a0a0a] border-t border-white/5 relative">
-         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-6">
+         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8">
             {[
                 { icon: <Star className="text-[#D4AF37]" size={32}/>, title: "Exquisite Scent", desc: "Rare ingredients blended to perfection." },
                 { icon: <ShieldCheck className="text-[#D4AF37]" size={32}/>, title: "Certified Quality", desc: "Dermatologically tested and safe." },
                 { icon: <Truck className="text-[#D4AF37]" size={32}/>, title: "Express Delivery", desc: "Secure shipping across India in 3 days." },
             ].map((f, idx) => (
                 <RevealOnScroll key={idx} delay={idx * 0.1}>
-                  <div className="p-8 md:p-12 border border-white/5 bg-[#050505] transition-all hover:border-[#D4AF37]/30 text-center">
-                      <div className="mb-6 flex justify-center p-4 bg-white/5 rounded-full w-max mx-auto text-[#D4AF37]">{f.icon}</div>
-                      <h3 className="text-xl font-serif text-white mb-3">{f.title}</h3>
+                  <div className="p-12 border border-white/5 hover:border-[#D4AF37]/30 bg-[#050505] transition-all duration-500 group text-center hover:-translate-y-2">
+                      <div className="mb-6 flex justify-center group-hover:scale-110 transition-transform duration-500 p-4 bg-white/5 rounded-full w-max mx-auto group-hover:bg-[#D4AF37]/10">{f.icon}</div>
+                      <h3 className="text-xl font-serif text-white mb-3 group-hover:text-[#D4AF37] transition-colors">{f.title}</h3>
                       <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
                   </div>
                 </RevealOnScroll>
@@ -644,52 +651,77 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- EXCLUSIVE OFFER SECTION --- */}
-      <section id="offer" className="relative py-24 bg-[#050505] overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4">
+      {/* --- EXCLUSIVE OFFER SECTION (UPDATED) --- */}
+      <section id="offer" className="relative py-32 bg-[#050505] overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 z-0">
+             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px]" />
+             <NoiseOverlay />
+        </div>
+        
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
             <RevealOnScroll>
-              <div className="grid md:grid-cols-2 bg-[#0a0a0a] border border-[#D4AF37]/20 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.05)]">
+              <div className="grid md:grid-cols-2 bg-[#0a0a0a] border border-[#D4AF37]/20 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.05)]">
                   
                   {/* Left: Product & Visuals */}
                   <div className="relative p-10 flex items-center justify-center bg-gradient-to-br from-[#121212] to-[#050505]">
-                      <span className="absolute top-4 left-4 bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full animate-pulse">
-                        Flash Sale
-                      </span>
+                      <div className="absolute top-4 left-4 flex gap-2">
+                          <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full animate-pulse">
+                            Flash Sale
+                          </span>
+                      </div>
                       <img 
                           src={heroProduct.images[0].url} 
-                          className="w-[60%] drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
+                          className="w-[70%] drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] transform hover:scale-105 transition-transform duration-500"
                           alt="Offer Product"
                       />
                   </div>
 
                   {/* Right: Content & Timer */}
-                  <div className="p-8 md:p-12 flex flex-col justify-center border-l border-white/5">
-                      <div className="flex gap-3 mb-6 justify-center md:justify-start">
+                  <div className="p-10 md:p-16 flex flex-col justify-center border-l border-white/5 relative">
+                      <h3 className="text-[#D4AF37] text-sm font-bold uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                        <Timer size={16}/> Ends in
+                      </h3>
+                      
+                      {/* COUNTDOWN TIMER */}
+                      <div className="flex gap-4 mb-8">
                           {['hours', 'minutes', 'seconds'].map((unit, i) => (
                               <div key={i} className="flex flex-col items-center">
-                                  <div className="w-12 h-12 bg-[#1a1a1a] border border-[#D4AF37]/30 rounded flex items-center justify-center text-lg font-mono text-[#D4AF37]">
+                                  <div className="w-16 h-16 bg-[#1a1a1a] border border-[#D4AF37]/30 rounded-lg flex items-center justify-center text-2xl font-mono text-[#D4AF37] shadow-inner">
                                       {String(timeLeft[unit]).padStart(2, '0')}
                                   </div>
-                                  <span className="text-[10px] text-gray-500 uppercase mt-2">{unit.charAt(0)}</span>
+                                  <span className="text-[10px] text-gray-500 uppercase mt-2 tracking-wider">{unit}</span>
                               </div>
                           ))}
                       </div>
 
-                      <h2 className="text-3xl font-serif text-white mb-2 text-center md:text-left">
+                      <h2 className="text-4xl md:text-5xl font-serif text-white mb-4">
                         Daily <span className="text-[#D4AF37] italic">Deal</span>
                       </h2>
                       
-                      <div className="flex items-end gap-4 mb-8 justify-center md:justify-start">
-                          <span className="text-gray-500 line-through text-lg">₹{originalPrice}</span>
-                          <span className="text-4xl text-[#D4AF37] font-serif">₹{offerPrice}</span>
+                      <p className="text-gray-400 text-sm leading-relaxed mb-8 border-b border-white/10 pb-8">
+                      This exclusive invitation expires when the clock strikes zero. Secure your signature scent at a privileged price before the window closes.
+                      </p>
+                      
+                      {/* PRICING */}
+                      <div className="flex items-end gap-4 mb-8">
+                          <div>
+                              <p className="text-xs text-gray-500 uppercase mb-1 line-through">Original Price</p>
+                              <p className="text-xl text-gray-500 line-through decoration-red-500/50">₹{originalPrice}</p>
+                          </div>
+                          <div>
+                              <p className="text-xs text-[#D4AF37] uppercase mb-1 font-bold">Offer Price</p>
+                              <p className="text-4xl text-white font-serif">₹{offerPrice}</p>
+                          </div>
                       </div>
 
                       <button 
                         onClick={() => handleBuy(heroProduct, true)} 
-                        className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-lg"
+                        className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
                       >
-                          Claim Offer
+                          Claim Offer Now
                       </button>
+                      
                   </div>
               </div>
             </RevealOnScroll>
@@ -697,41 +729,79 @@ export default function Home() {
       </section>
 
       {/* --- FOOTER --- */}
-      <footer className="bg-[#020202] border-t border-white/10 pt-20 pb-8">
+      <footer className="bg-[#020202] border-t border-white/10 pt-32 pb-12 relative z-10">
         <div className="max-w-7xl mx-auto px-6">
-            <div className="grid md:grid-cols-4 gap-12 mb-16 text-center md:text-left">
-                <div className="col-span-1 md:col-span-2 space-y-6">
-                    <h2 className="text-3xl font-serif text-[#D4AF37] tracking-widest">ORVELLA</h2>
-                    <p className="text-gray-500 max-w-sm mx-auto md:mx-0 text-sm">
-                        Defining luxury through scent. The Golden Root is crafted for those who leave a mark.
+            <div className="grid md:grid-cols-4 gap-16 mb-24">
+                <div className="col-span-1 md:col-span-2 space-y-8">
+                    <h2 className="text-4xl font-serif text-[#D4AF37] tracking-widest">ORVELLA</h2>
+                    <p className="text-gray-500 max-w-sm leading-relaxed text-sm">
+                        Orvella is more than a fragrance; it's an identity. The Golden Root is crafted for those who leave a mark without saying a word.
                     </p>
-                    <div className="flex justify-center md:justify-start gap-6">
-                        <Instagram className="text-gray-500 hover:text-[#D4AF37] cursor-pointer" size={20} />
-                        <Twitter className="text-gray-500 hover:text-[#D4AF37] cursor-pointer" size={20} />
-                        <Facebook className="text-gray-500 hover:text-[#D4AF37] cursor-pointer" size={20} />
+                    <div className="flex gap-6">
+                        <Instagram className="text-gray-500 hover:text-[#D4AF37] cursor-pointer transition-colors hover:scale-110" size={20} />
+                        <Twitter className="text-gray-500 hover:text-[#D4AF37] cursor-pointer transition-colors hover:scale-110" size={20} />
+                        <Facebook className="text-gray-500 hover:text-[#D4AF37] cursor-pointer transition-colors hover:scale-110" size={20} />
                     </div>
                 </div>
+                
+                <div className="space-y-8">
+                    <h4 className="text-white font-bold uppercase tracking-widest text-xs">Menu</h4>
+                    <ul className="space-y-4 text-gray-500 text-sm">
+                        <li><button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">Home</button></li>
+                        <li><button onClick={() => scrollToSection('details')} className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">The Scent</button></li>
+                        <li><button onClick={() => scrollToSection('offer')} className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">Offer</button></li>
+                        <li><Link to="/contact" className="hover:text-[#D4AF37] transition-colors hover:pl-2 duration-300">Contact</Link></li>
+                    </ul>
+                </div>
 
-                <div className="space-y-6">
+                {/* --- DYNAMIC NEWSLETTER SECTION --- */}
+                <div className="space-y-8">
                     <h4 className="text-white font-bold uppercase tracking-widest text-xs">Newsletter</h4>
-                    <form onSubmit={handleSubscribe} className="flex flex-col gap-3">
+                    <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
                         <input 
                             type="email" 
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email Address" 
-                            className="bg-white/5 border border-white/10 px-4 py-3 text-white text-xs placeholder:text-gray-600"
+                            disabled={subscribing}
+                            className="bg-white/5 border border-white/10 px-4 py-4 text-white focus:outline-none focus:border-[#D4AF37] transition-colors text-xs placeholder:text-gray-600 tracking-wide disabled:opacity-50"
                         />
-                        <button type="submit" className="bg-[#D4AF37] text-black px-4 py-3 text-xs font-bold uppercase tracking-widest">
-                            {subscribing ? "..." : "Subscribe"}
+                        <button 
+                            type="submit"
+                            disabled={subscribing}
+                            className="bg-white/10 text-white px-4 py-4 hover:bg-[#D4AF37] hover:text-black transition-colors text-xs font-bold uppercase tracking-widest disabled:cursor-not-allowed flex justify-center items-center"
+                        >
+                            {subscribing ? <span className="animate-pulse">Processing...</span> : "Subscribe"}
                         </button>
-                        {subscribeMsg && <p className="text-[#D4AF37] text-xs">{subscribeMsg}</p>}
+
+                        <AnimatePresence>
+                            {subscribeMsg && (
+                                <motion.p 
+                                    initial={{ opacity: 0, height: 0 }} 
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className={`text-xs font-mono tracking-wide ${
+                                        subscribeMsg.includes("Welcome") 
+                                        ? "text-[#D4AF37]" 
+                                        : "text-red-500"
+                                    }`}
+                                >
+                                    {subscribeMsg}
+                                </motion.p>
+                            )}
+                        </AnimatePresence>
                     </form>
                 </div>
             </div>
 
-            <div className="border-t border-white/5 pt-8 text-center text-xs text-gray-700 font-mono">
+            <div className="border-t border-white/5 pt-10 flex flex-col md:flex-row justify-between items-center text-xs text-gray-700 font-mono">
                 <p>&copy; 2026 Orvella. All Rights Reserved.</p>
+                <div className="flex gap-8 mt-4 md:mt-0">
+                   <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                   <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+                   <Link to="/refund" className="hover:text-white transition-colors">Refunds</Link>
+                   <Link to="/admin" className="hover:text-[#D4AF37] transition-colors">Admin</Link>
+                </div>
             </div>
         </div>
       </footer>

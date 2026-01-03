@@ -3,19 +3,18 @@ import { motion } from "framer-motion";
 import { CheckCircle, Clock, AlertTriangle, PackageCheck } from "lucide-react";
 
 const OrderSuccess = ({ onClose, onContinueShopping, orderDetails }) => {
-  // Fix: Render nothing if details missing
+  // Fix: Agar orderDetails abhi tak set nahi hua hai, toh render mat karo (Glitch prevent karne ke liye)
   if (!orderDetails) return null;
 
-  // Check payment method safely
+  // Check payment method (Case insensitive check for safety)
   const method = orderDetails?.method?.toLowerCase() || "";
   const isCOD = method === 'cod';
   const isManualPayment = method === 'upi_manual';
 
   return (
-    // Z-INDEX 9999: Taaki yeh Checkout aur Navbar sabke upar dikhe
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
+      className="fixed inset-0 z-[120] flex items-center justify-center px-4"
     >
       <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" onClick={onClose} />
       
