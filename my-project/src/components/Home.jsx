@@ -130,7 +130,7 @@ export default function Home() {
 
     try {
         
-       const response = await fetch("https://www.orvellaluxury.in/api/v1/newsletter", {
+       const response = await fetch("https://orvellanew.onrender.com/api/v1/newsletter", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
