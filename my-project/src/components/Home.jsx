@@ -130,9 +130,9 @@ export default function Home() {
 
     try {
         // FIX: Add fallback || "" so it doesn't print "undefined" in the URL
-        const API_URL = import.meta.env.VITE_API_URL || "";
+        const API_URL = import.meta.env.VITE_API_URL;
 
-        const response = await fetch(`${API_URL}/api/newsletter`, {
+        const response = await fetch(`${API_URL}/api/v1/newsletter`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
