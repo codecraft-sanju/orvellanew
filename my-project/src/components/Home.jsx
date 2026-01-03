@@ -115,7 +115,7 @@ export default function Home() {
     };
   }, [mobileMenuOpen, showOrderSuccess, selectedProduct, isCheckoutOpen, setShowOrderSuccess]);
 
-  // --- NEWSLETTER HANDLER (FIXED) ---
+  // --- NEWSLETTER HANDLER ---
   const handleSubscribe = async (e) => {
     e.preventDefault();
     
@@ -129,8 +129,7 @@ export default function Home() {
     setSubscribeMsg("");
 
     try {
-        
-       const response = await fetch("https://orvellanew.onrender.com/api/v1/newsletter", {
+        const response = await fetch("https://orvellanew.onrender.com/api/v1/newsletter", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),

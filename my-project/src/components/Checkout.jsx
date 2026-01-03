@@ -94,13 +94,15 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4"
+      // UPDATE: z-index 1000 kiya taaki navbar ke upar aaye
+      className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center sm:p-4"
     >
       <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
 
       <motion.div 
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-        className="relative z-10 bg-[#0a0a0a] border-t md:border border-[#D4AF37]/30 w-full max-w-2xl md:rounded-2xl rounded-t-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh]"
+        // UPDATE: Mobile height fix (h-[95dvh]) taaki phone pe full screen feel aaye aur keyboard issue na ho
+        className="relative z-10 bg-[#0a0a0a] border-t md:border border-[#D4AF37]/30 w-full max-w-2xl md:rounded-2xl rounded-t-2xl overflow-hidden flex flex-col shadow-2xl h-[95dvh] md:h-auto md:max-h-[90vh]"
       >
         {/* HEADER */}
         <div className="flex justify-between items-center p-5 border-b border-white/10 bg-[#050505] shrink-0">
@@ -111,9 +113,10 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
         </div>
 
         {/* CONTENT AREA */}
-        <div className="overflow-y-auto p-6 md:p-8 custom-scrollbar">
+        {/* UPDATE: flex-1 add kiya taaki content properly scroll ho */}
+        <div className="overflow-y-auto p-6 md:p-8 custom-scrollbar flex-1">
             {isProcessing ? (
-                 <div className="h-[300px] flex flex-col items-center justify-center text-center">
+                 <div className="h-full flex flex-col items-center justify-center text-center min-h-[300px]">
                     <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="mb-6">
                         <Loader2 size={50} className="text-[#D4AF37]" />
                     </motion.div>
@@ -162,7 +165,7 @@ const Checkout = ({ cart, subtotal, onClose, onOrderSuccess }) => {
 
                     {/* --- STEP 2: PAYMENT --- */}
                     {step === 2 && (
-                        <div className="flex flex-col md:flex-row gap-8">
+                        <div className="flex flex-col md:flex-row gap-8 pb-8">
                             
                             {/* Left: Dynamic Bill Summary */}
                             <div className="md:w-5/12 space-y-4 order-2 md:order-1">
